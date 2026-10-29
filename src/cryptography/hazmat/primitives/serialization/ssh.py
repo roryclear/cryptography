@@ -476,25 +476,6 @@ class _SSHFormatECDSA:
         )
         return public_key, data
 
-    def load_private(
-        self, data: memoryview, pubfields, unsafe_skip_rsa_key_validation: bool
-    ) -> tuple[ec.EllipticCurvePrivateKey, memoryview]:
-        """Make ECDSA private key from data."""
-        (curve_name, point), data = self.get_public(data)
-        secret, data = _get_mpint(data)
-
-        if (curve_name, point) != pubfields:
-            raise ValueError("Corrupt data: ecdsa field mismatch")
-        private_key = ec.derive_private_key(secret, self.curve)
-        public_point = private_key.public_key().public_bytes(
-            Encoding.X962, PublicFormat.UncompressedPoint
-        )
-        if point != public_point:
-            raise ValueError(
-                "Corrupt data: ecdsa public key does not match private key"
-            )
-        return private_key, data
-
     def encode_public(
         self, public_key: ec.EllipticCurvePublicKey, f_pub: _FragList
     ) -> None:

@@ -133,8 +133,8 @@ pub(crate) fn generate_private_key(
     curve: pyo3::Bound<'_, pyo3::PyAny>,
     backend: Option<pyo3::Bound<'_, pyo3::PyAny>>,
 ) -> CryptographyResult<ECPrivateKey> {
+    println!("HERE!");
     let _ = backend;
-
     let ossl_curve = curve_from_py_curve(py, curve)?;
     let key = openssl::ec::EcKey::generate(&ossl_curve)?;
     let pkey = openssl::pkey::PKey::from_ec_key(key)?;
@@ -142,31 +142,6 @@ pub(crate) fn generate_private_key(
     Ok(ECPrivateKey {
         pkey,
         curve: py_curve_from_curve(py, &ossl_curve)?.into(),
-    })
-}
-
-#[pyo3::pyfunction]
-fn derive_private_key(
-    py: pyo3::Python<'_>,
-    py_private_value: &pyo3::Bound<'_, pyo3::types::PyInt>,
-    py_curve: pyo3::Bound<'_, pyo3::PyAny>,
-) -> CryptographyResult<ECPrivateKey> {
-    let curve = curve_from_py_curve(py, py_curve.clone())?;
-    let private_value = utils::py_int_to_bn(py, py_private_value)?;
-
-    let mut point = openssl::ec::EcPoint::new(&curve)?;
-    let mut bn_ctx = openssl::bn::BigNumContext::new()?;
-    point.mul_generator2(&curve, &private_value, &mut bn_ctx)?;
-    let ec = openssl::ec::EcKey::from_private_components(&curve, &private_value, &point)
-        .map_err(|_| pyo3::exceptions::PyValueError::new_err("Invalid EC key"))?;
-    ec.check_key().map_err(|_| {
-        pyo3::exceptions::PyValueError::new_err("Invalid EC key (key out of range, infinity, etc.)")
-    })?;
-    let pkey = openssl::pkey::PKey::from_ec_key(ec)?;
-
-    Ok(ECPrivateKey {
-        pkey,
-        curve: py_curve.into(),
     })
 }
 
@@ -695,7 +670,7 @@ impl EllipticCurvePublicNumbers {
 pub(crate) mod ec {
     #[pymodule_export]
     use super::{
-        curve_supported, derive_private_key, from_public_bytes, generate_private_key, ECPrivateKey,
+        curve_supported, from_public_bytes, generate_private_key, ECPrivateKey,
         ECPublicKey, EllipticCurvePrivateNumbers, EllipticCurvePublicNumbers,
     };
 }

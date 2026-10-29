@@ -47,6 +47,3 @@ def from_public_numbers(
 def from_public_bytes(
     curve: ec.EllipticCurve, data: bytes
 ) -> ec.EllipticCurvePublicKey: ...
-def derive_private_key(
-    private_value: int, curve: ec.EllipticCurve
-) -> ec.EllipticCurvePrivateKey: ...

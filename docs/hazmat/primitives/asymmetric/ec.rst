@@ -17,19 +17,6 @@ Elliptic curve cryptography
     :returns: A new instance of :class:`EllipticCurvePrivateKey`.
 
 
-.. function:: derive_private_key(private_value, curve)
-
-    .. versionadded:: 1.6
-
-    Derive a private key from ``private_value`` on ``curve``.
-
-    :param int private_value: The secret scalar value.
-
-    :param curve: An instance of :class:`EllipticCurve`.
-
-    :returns: A new instance of :class:`EllipticCurvePrivateKey`.
-
-
 Elliptic Curve Signature Algorithms
 -----------------------------------
 
