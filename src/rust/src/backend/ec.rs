@@ -133,7 +133,7 @@ pub(crate) fn generate_private_key(
     curve: pyo3::Bound<'_, pyo3::PyAny>,
     backend: Option<pyo3::Bound<'_, pyo3::PyAny>>,
 ) -> CryptographyResult<ECPrivateKey> {
-    println!("HERE!");
+    println!("HERE111");
     let _ = backend;
     let ossl_curve = curve_from_py_curve(py, curve)?;
     let key = openssl::ec::EcKey::generate(&ossl_curve)?;
