@@ -97,16 +97,6 @@ fn curve_supported(py: pyo3::Python<'_>, py_curve: pyo3::Bound<'_, pyo3::PyAny>)
     curve_from_py_curve(py, py_curve).is_ok()
 }
 
-pub(crate) fn public_key_from_pkey(
-    py: pyo3::Python<'_>,
-    pkey: &openssl::pkey::PKeyRef<openssl::pkey::Public>,
-) -> CryptographyResult<ECPublicKey> {
-    let ec = pkey.ec_key()?;
-    let curve = py_curve_from_curve(py, ec.group())?;
-
-    ECPublicKey::new(pkey.to_owned(), curve.into())
-}
-
 #[pyo3::pyfunction]
 #[pyo3(signature = (curve, backend=None))]
 pub(crate) fn generate_private_key(

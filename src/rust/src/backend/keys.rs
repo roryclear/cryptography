@@ -327,9 +327,6 @@ fn public_key_from_pkey<'p>(
         openssl::pkey::Id::RSA => Ok(crate::backend::rsa::public_key_from_pkey(pkey)?
             .into_pyobject(py)?
             .into_any()),
-        openssl::pkey::Id::EC => Ok(crate::backend::ec::public_key_from_pkey(py, pkey)?
-            .into_pyobject(py)?
-            .into_any()),
         openssl::pkey::Id::X25519 => Ok(crate::backend::x25519::public_key_from_pkey(pkey)
             .into_pyobject(py)?
             .into_any()),
