@@ -7,8 +7,7 @@ members = [
     "src/rust/cryptography-keepalive",
     "src/rust/cryptography-key-parsing",
     "src/rust/cryptography-openssl",
-    "src/rust/cryptography-x509",
-    "src/rust/cryptography-x509-verification",
+    "src/rust/cryptography-x509"
 ]
 
 [workspace.package]
