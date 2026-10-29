@@ -433,30 +433,6 @@ impl EllipticCurvePrivateNumbers {
     }
 }
 
-#[pyo3::pymethods]
-impl EllipticCurvePublicNumbers {
-    #[new]
-    fn new(
-        py: pyo3::Python<'_>,
-        x: pyo3::Py<pyo3::types::PyInt>,
-        y: pyo3::Py<pyo3::types::PyInt>,
-        curve: pyo3::Py<pyo3::PyAny>,
-    ) -> CryptographyResult<EllipticCurvePublicNumbers> {
-        if !curve
-            .bind(py)
-            .is_instance(&types::ELLIPTIC_CURVE.get(py)?)?
-        {
-            return Err(CryptographyError::from(
-                pyo3::exceptions::PyTypeError::new_err(
-                    "curve must provide the EllipticCurve interface.",
-                ),
-            ));
-        }
-
-        Ok(EllipticCurvePublicNumbers { x, y, curve })
-    }
-}
-
 #[pyo3::pymodule(gil_used = false)]
 pub(crate) mod ec {
     #[pymodule_export]
