@@ -146,7 +146,7 @@ pub(crate) fn generate_private_key(
 }
 
 #[pyo3::pyfunction]
-pub(crate) fn from_public_bytes(
+pub(crate) fn from_public_bytes( // todo unused
     py: pyo3::Python<'_>,
     py_curve: pyo3::Bound<'_, pyo3::PyAny>,
     data: &[u8],
@@ -670,7 +670,7 @@ impl EllipticCurvePublicNumbers {
 pub(crate) mod ec {
     #[pymodule_export]
     use super::{
-        curve_supported, from_public_bytes, generate_private_key, ECPrivateKey,
+        generate_private_key, ECPrivateKey,
         ECPublicKey, EllipticCurvePrivateNumbers, EllipticCurvePublicNumbers,
     };
 }
