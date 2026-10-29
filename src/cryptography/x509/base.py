@@ -12,18 +12,7 @@ from collections.abc import Iterable
 from cryptography import utils
 from cryptography.hazmat.bindings._rust import x509 as rust_x509
 from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.asymmetric import (
-    dsa,
-    ec,
-    ed448,
-    ed25519,
-    mldsa,
-    mlkem,
-    padding,
-    rsa,
-    x448,
-    x25519,
-)
+from cryptography.hazmat.primitives.asymmetric import ec, padding
 from cryptography.hazmat.primitives.asymmetric.types import (
     CertificateIssuerPrivateKeyTypes,
     CertificatePublicKeyTypes,
@@ -273,8 +262,6 @@ class CertificateSigningRequestBuilder:
         if rsa_padding is not None:
             if not isinstance(rsa_padding, (padding.PSS, padding.PKCS1v15)):
                 raise TypeError("Padding must be PSS or PKCS1v15")
-            if not isinstance(private_key, rsa.RSAPrivateKey):
-                raise TypeError("Padding is only supported for RSA keys")
 
         if ecdsa_deterministic is not None:
             if not isinstance(private_key, ec.EllipticCurvePrivateKey):
@@ -359,41 +346,10 @@ class CertificateBuilder:
         *,
         rsa_padding: type[padding.PSS] | None = None,
     ) -> CertificateBuilder:
-        """
-        Sets the requestor's public key (as found in the signing request).
-        """
-        if not isinstance(
-            key,
-            (
-                dsa._DSAPublicKey,
-                rsa.RSAPublicKey,
-                ec.EllipticCurvePublicKey,
-                ed25519.Ed25519PublicKey,
-                ed448.Ed448PublicKey,
-                mldsa.MLDSA44PublicKey,
-                mldsa.MLDSA65PublicKey,
-                mldsa.MLDSA87PublicKey,
-                mlkem.MLKEM768PublicKey,
-                mlkem.MLKEM1024PublicKey,
-                x25519.X25519PublicKey,
-                x448.X448PublicKey,
-            ),
-        ):
-            raise TypeError(
-                "Expecting one of DSAPublicKey, RSAPublicKey,"
-                " EllipticCurvePublicKey, Ed25519PublicKey,"
-                " Ed448PublicKey, MLDSA44PublicKey, MLDSA65PublicKey,"
-                " MLDSA87PublicKey, MLKEM768PublicKey, MLKEM1024PublicKey,"
-                " X25519PublicKey or X448PublicKey."
-            )
         if rsa_padding is not None:
             if rsa_padding is not padding.PSS:
                 raise TypeError(
                     "rsa_padding must be the PSS class, not an instance"
-                )
-            if not isinstance(key, rsa.RSAPublicKey):
-                raise TypeError(
-                    "rsa_padding is only supported with RSA public keys"
                 )
         if self._public_key is not None:
             raise ValueError("The public key may only be set once.")
@@ -557,8 +513,6 @@ class CertificateBuilder:
         if rsa_padding is not None:
             if not isinstance(rsa_padding, (padding.PSS, padding.PKCS1v15)):
                 raise TypeError("Padding must be PSS or PKCS1v15")
-            if not isinstance(private_key, rsa.RSAPrivateKey):
-                raise TypeError("Padding is only supported for RSA keys")
 
         if ecdsa_deterministic is not None:
             if not isinstance(private_key, ec.EllipticCurvePrivateKey):
@@ -743,8 +697,6 @@ class CertificateRevocationListBuilder:
         if rsa_padding is not None:
             if not isinstance(rsa_padding, (padding.PSS, padding.PKCS1v15)):
                 raise TypeError("Padding must be PSS or PKCS1v15")
-            if not isinstance(private_key, rsa.RSAPrivateKey):
-                raise TypeError("Padding is only supported for RSA keys")
 
         if ecdsa_deterministic is not None:
             if not isinstance(private_key, ec.EllipticCurvePrivateKey):

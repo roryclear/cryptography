@@ -1,7 +1,3 @@
-# This file is dual licensed under the terms of the Apache License, Version
-# 2.0, and the BSD License. See the LICENSE file in the root of this repository
-# for complete details.
-
 from __future__ import annotations
 
 import abc
@@ -10,7 +6,6 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives._asymmetric import (
     AsymmetricPadding as AsymmetricPadding,
 )
-from cryptography.hazmat.primitives.asymmetric import rsa
 
 
 class PKCS1v15(AsymmetricPadding):
@@ -128,12 +123,7 @@ class MGF1(MGF):
         return self._algorithm == other._algorithm
 
 
-def calculate_max_pss_salt_length(
-    key: rsa.RSAPrivateKey | rsa.RSAPublicKey,
-    hash_algorithm: hashes.HashAlgorithm,
-) -> int:
-    if not isinstance(key, (rsa.RSAPrivateKey, rsa.RSAPublicKey)):
-        raise TypeError("key must be an RSA public or private key")
+def calculate_max_pss_salt_length(key, hash_algorithm) -> int:
     # bit length - 1 per RFC 3447
     emlen = (key.key_size + 6) // 8
     salt_length = emlen - hash_algorithm.digest_size - 2
