@@ -40,22 +40,6 @@ fn main() {
     }
     println!("cargo:rerun-if-changed=../../_cffi_src/");
     println!("cargo:rerun-if-changed=../../cryptography/__about__.py");
-    let output = Command::new(&python)
-        .env("OUT_DIR", &out_dir)
-        // Writing __pycache__ into _cffi_src would bump the mtime of a
-        // directory this build script registers rerun-if-changed on,
-        // re-dirtying the crate on every subsequent build.
-        .env("PYTHONDONTWRITEBYTECODE", "1")
-        .arg("../../_cffi_src/build_openssl.py")
-        .output()
-        .expect("failed to execute build_openssl.py");
-    if !output.status.success() {
-        panic!(
-            "failed to run build_openssl.py, stdout: \n{}\nstderr: \n{}\n",
-            String::from_utf8(output.stdout).unwrap(),
-            String::from_utf8(output.stderr).unwrap()
-        );
-    }
 
     let python_impl = run_python_script(
         &python,
