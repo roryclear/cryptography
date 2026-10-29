@@ -635,17 +635,7 @@ class _SSHFormatSKECDSA:
         )
 
 
-_KEY_FORMATS = {
-    _SSH_RSA: _SSHFormatRSA(),
-    _SSH_DSA: _SSHFormatDSA(),
-    _SSH_ED25519: _SSHFormatEd25519(),
-    _ECDSA_NISTP256: _SSHFormatECDSA(b"nistp256", ec.SECP256R1()),
-    _ECDSA_NISTP384: _SSHFormatECDSA(b"nistp384", ec.SECP384R1()),
-    _ECDSA_NISTP521: _SSHFormatECDSA(b"nistp521", ec.SECP521R1()),
-    _SK_SSH_ED25519: _SSHFormatSKEd25519(),
-    _SK_SSH_ECDSA_NISTP256: _SSHFormatSKECDSA(),
-}
-
+_KEY_FORMATS = {}
 
 def _lookup_kformat(key_type: utils.Buffer):
     """Return valid format or throw error"""
