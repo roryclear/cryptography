@@ -460,8 +460,5 @@ impl EllipticCurvePublicNumbers {
 #[pyo3::pymodule(gil_used = false)]
 pub(crate) mod ec {
     #[pymodule_export]
-    use super::{
-        generate_private_key, ECPrivateKey,
-        ECPublicKey, EllipticCurvePublicNumbers,
-    };
+    use super::{generate_private_key};
 }
