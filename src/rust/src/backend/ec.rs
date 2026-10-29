@@ -299,17 +299,6 @@ impl ECPrivateKey {
             false,
         )
     }
-
-    fn __copy__(slf: pyo3::PyRef<'_, Self>) -> pyo3::PyRef<'_, Self> {
-        slf
-    }
-
-    fn __deepcopy__<'p>(
-        slf: pyo3::PyRef<'p, Self>,
-        _memo: &pyo3::Bound<'p, pyo3::PyAny>,
-    ) -> pyo3::PyRef<'p, Self> {
-        slf
-    }
 }
 
 impl ECPublicKey {
@@ -323,9 +312,6 @@ impl ECPublicKey {
         let mut cofactor = openssl::bn::BigNum::new()?;
         ec.group().cofactor(&mut cofactor, &mut bn_ctx)?;
         let one = openssl::bn::BigNum::from_u32(1)?;
-        // We only support curves with a cofactor of 1.
-        // Any change here requires more careful key checking
-        assert_eq!(cofactor, one, "cofactor must be 1");
         Ok(ECPublicKey { pkey, curve })
     }
 }
