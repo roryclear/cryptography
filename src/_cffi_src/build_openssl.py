@@ -1,19 +1,83 @@
-# This file is dual licensed under the terms of the Apache License, Version
-# 2.0, and the BSD License. See the LICENSE file in the root of this repository
-# for complete details.
-
 from __future__ import annotations
-
-import os
 import pathlib
-import platform
-import sys
+import sys, os
 
-# Add the src directory to the path so we can import _cffi_src.utils
 src_dir = str(pathlib.Path(__file__).parent.parent)
 sys.path.insert(0, src_dir)
 
-from _cffi_src.utils import build_ffi_for_binding  # noqa: E402
+from cffi import FFI
+import platform
+about: dict = {}
+
+base_src = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+with open(os.path.join(base_src, "cryptography", "__about__.py")) as f:
+    exec(f.read(), about)
+
+def build_ffi_for_binding(
+    module_name: str,
+    module_prefix: str,
+    modules: list[str],
+):
+    """
+    Modules listed in ``modules`` should have the following attributes:
+
+    * ``INCLUDES``: A string containing C includes.
+    * ``TYPES``: A string containing C declarations for types.
+    * ``FUNCTIONS``: A string containing C declarations for functions & macros.
+    * ``CUSTOMIZATIONS``: A string containing arbitrary top-level C code, this
+        can be used to do things like test for a define and provide an
+        alternate implementation based on that.
+    """
+    types = []
+    includes = []
+    functions = []
+    customizations = []
+    for name in modules:
+        __import__(module_prefix + name)
+        module = sys.modules[module_prefix + name]
+
+        types.append(module.TYPES)
+        functions.append(module.FUNCTIONS)
+        includes.append(module.INCLUDES)
+        customizations.append(module.CUSTOMIZATIONS)
+
+    verify_source = "\n".join(includes + customizations)
+    return build_ffi(
+        module_name,
+        cdef_source="\n".join(types + functions),
+        verify_source=verify_source,
+    )
+
+
+def build_ffi(
+    module_name: str,
+    cdef_source: str,
+    verify_source: str,
+):
+    ffi = FFI()
+    # Always add the CRYPTOGRAPHY_PACKAGE_VERSION to the shared object
+    cdef_source += "\nstatic const char *const CRYPTOGRAPHY_PACKAGE_VERSION;"
+    verify_source += '\n#define CRYPTOGRAPHY_PACKAGE_VERSION "{}"'.format(
+        about["__version__"]
+    )
+    if platform.python_implementation() == "PyPy":
+        verify_source += r"""
+int Cryptography_make_openssl_module(void) {
+    int result;
+
+    Py_BEGIN_ALLOW_THREADS
+    result = cffi_start_python();
+    Py_END_ALLOW_THREADS
+
+    return result;
+}
+"""
+    ffi.cdef(cdef_source)
+    ffi.set_source(
+        module_name,
+        verify_source,
+    )
+    return ffi
 
 ffi = build_ffi_for_binding(
     module_name="_openssl",
@@ -44,17 +108,3 @@ ffi = build_ffi_for_binding(
         "x509_vfy",
     ],
 )
-
-if __name__ == "__main__":
-    out_dir = os.environ["OUT_DIR"]
-    module_name, source, source_extension, kwds = ffi._assigned_source
-    c_file = os.path.join(out_dir, module_name + source_extension)
-    if platform.python_implementation() == "PyPy":
-        # Necessary because CFFI will ignore this if there's no declarations.
-        ffi.embedding_api(
-            """
-            extern "Python" void Cryptography_unused(void);
-        """
-        )
-        ffi.embedding_init_code("")
-    ffi.emit_c_code(c_file)
