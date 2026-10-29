@@ -131,15 +131,6 @@ fn private_key_from_pkey<'p>(
     unsafe_skip_rsa_key_validation: bool,
 ) -> CryptographyResult<pyo3::Bound<'p, pyo3::PyAny>> {
     match pkey.id() {
-        openssl::pkey::Id::RSA => Ok(crate::backend::rsa::private_key_from_pkey(
-            pkey,
-            unsafe_skip_rsa_key_validation,
-        )?
-        .into_pyobject(py)?
-        .into_any()),
-        openssl::pkey::Id::EC => Ok(crate::backend::ec::private_key_from_pkey(py, pkey)?
-            .into_pyobject(py)?
-            .into_any()),
         openssl::pkey::Id::X25519 => Ok(crate::backend::x25519::private_key_from_pkey(pkey)
             .into_pyobject(py)?
             .into_any()),

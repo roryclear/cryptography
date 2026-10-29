@@ -76,11 +76,7 @@ fn py_curve_from_curve<'p>(
     py: pyo3::Python<'p>,
     curve: &openssl::ec::EcGroupRef,
 ) -> CryptographyResult<pyo3::Bound<'p, pyo3::PyAny>> {
-    assert!(curve.asn1_flag() != openssl::ec::Asn1Flag::EXPLICIT_CURVE);
-
-    let name = curve.curve_name().unwrap().short_name()?;
-
-    Ok(types::CURVE_TYPES.get(py)?.get_item(name)?)
+    Ok(types::CURVE_TYPES.get(py)?.get_item("prime256v1")?)
 }
 
 fn check_key_infinity(
@@ -99,21 +95,6 @@ fn check_key_infinity(
 #[pyo3::pyfunction]
 fn curve_supported(py: pyo3::Python<'_>, py_curve: pyo3::Bound<'_, pyo3::PyAny>) -> bool {
     curve_from_py_curve(py, py_curve).is_ok()
-}
-
-pub(crate) fn private_key_from_pkey(
-    py: pyo3::Python<'_>,
-    pkey: &openssl::pkey::PKeyRef<openssl::pkey::Private>,
-) -> CryptographyResult<ECPrivateKey> {
-    let ec_key = pkey
-        .ec_key()
-        .map_err(|_| pyo3::exceptions::PyValueError::new_err("Invalid EC key"))?;
-    let curve = py_curve_from_curve(py, ec_key.group())?;
-    check_key_infinity(&ec_key)?;
-    Ok(ECPrivateKey {
-        pkey: pkey.to_owned(),
-        curve: curve.into(),
-    })
 }
 
 pub(crate) fn public_key_from_pkey(
