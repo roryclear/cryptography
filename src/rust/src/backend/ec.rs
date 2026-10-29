@@ -93,11 +93,6 @@ fn check_key_infinity(
 }
 
 #[pyo3::pyfunction]
-fn curve_supported(py: pyo3::Python<'_>, py_curve: pyo3::Bound<'_, pyo3::PyAny>) -> bool {
-    curve_from_py_curve(py, py_curve).is_ok()
-}
-
-#[pyo3::pyfunction]
 #[pyo3(signature = (curve, backend=None))]
 pub(crate) fn generate_private_key(
     py: pyo3::Python<'_>,
