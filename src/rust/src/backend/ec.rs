@@ -335,56 +335,6 @@ fn public_key_from_numbers(
     Ok(openssl::ec::EcKey::from_public_key(curve, &point)?)
 }
 
-#[pyo3::pymethods]
-impl EllipticCurvePrivateNumbers {
-    #[new]
-    fn new(
-        private_value: pyo3::Py<pyo3::types::PyInt>,
-        public_numbers: pyo3::Py<EllipticCurvePublicNumbers>,
-    ) -> EllipticCurvePrivateNumbers {
-        EllipticCurvePrivateNumbers {
-            private_value,
-            public_numbers,
-        }
-    }
-
-    #[pyo3(signature = (backend=None))]
-    fn private_key(
-        &self,
-        py: pyo3::Python<'_>,
-        backend: Option<pyo3::Bound<'_, pyo3::PyAny>>,
-    ) -> CryptographyResult<ECPrivateKey> {
-        let _ = backend;
-
-        let curve = curve_from_py_curve(py, self.public_numbers.get().curve.bind(py).clone())?;
-        let public_key = public_key_from_numbers(py, self.public_numbers.get(), &curve)?;
-        let private_value = utils::py_int_to_bn(py, self.private_value.bind(py))?;
-
-        let mut bn_ctx = openssl::bn::BigNumContext::new()?;
-        let mut expected_pub = openssl::ec::EcPoint::new(&curve)?;
-        expected_pub.mul_generator2(&curve, &private_value, &mut bn_ctx)?;
-        if !expected_pub.eq(&curve, public_key.public_key(), &mut bn_ctx)? {
-            return Err(CryptographyError::from(
-                pyo3::exceptions::PyValueError::new_err("Invalid EC key."),
-            ));
-        }
-
-        let private_key = openssl::ec::EcKey::from_private_components(
-            &curve,
-            &private_value,
-            public_key.public_key(),
-        )
-        .map_err(|_| pyo3::exceptions::PyValueError::new_err("Invalid EC key."))?;
-
-        let pkey = openssl::pkey::PKey::from_ec_key(private_key)?;
-
-        Ok(ECPrivateKey {
-            pkey,
-            curve: self.public_numbers.get().curve.clone_ref(py),
-        })
-    }
-}
-
 #[pyo3::pymodule(gil_used = false)]
 pub(crate) mod ec {
     #[pymodule_export]
