@@ -87,6 +87,7 @@ pub(crate) fn from_public_bytes( // todo unused
     py_curve: pyo3::Bound<'_, pyo3::PyAny>,
     data: &[u8],
 ) -> CryptographyResult<ECPublicKey> {
+    println!("FFFFF");
     let curve = curve_from_py_curve(py, py_curve.clone())?;
 
     let mut bn_ctx = openssl::bn::BigNumContext::new()?;

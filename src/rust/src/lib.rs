@@ -243,8 +243,6 @@ mod _rust {
         #[pymodule_export]
         use crate::backend::hmac::hmac;
         #[pymodule_export]
-        use crate::backend::hpke::hpke;
-        #[pymodule_export]
         use crate::backend::kdf::kdf;
         #[pymodule_export]
         use crate::backend::keys::keys;
