@@ -9,9 +9,6 @@ import abc
 class EllipticCurve(metaclass=abc.ABCMeta): pass
 class EllipticCurveSignatureAlgorithm(metaclass=abc.ABCMeta): pass
 class EllipticCurvePrivateKey(metaclass=abc.ABCMeta): pass
-
-
-
 class EllipticCurvePublicKey(metaclass=abc.ABCMeta): pass
 
 class SECP256R1(metaclass=abc.ABCMeta):

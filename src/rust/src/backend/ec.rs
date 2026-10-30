@@ -81,24 +81,6 @@ pub(crate) fn generate_private_key(
     })
 }
 
-#[pyo3::pyfunction]
-pub(crate) fn from_public_bytes( // todo unused
-    py: pyo3::Python<'_>,
-    py_curve: pyo3::Bound<'_, pyo3::PyAny>,
-    data: &[u8],
-) -> CryptographyResult<ECPublicKey> {
-    println!("FFFFF");
-    let curve = curve_from_py_curve(py, py_curve.clone())?;
-
-    let mut bn_ctx = openssl::bn::BigNumContext::new()?;
-    let point = openssl::ec::EcPoint::from_bytes(&curve, data, &mut bn_ctx)
-        .map_err(|_| pyo3::exceptions::PyValueError::new_err("Invalid EC key."))?;
-    let ec = openssl::ec::EcKey::from_public_key(&curve, &point)?;
-    let pkey = openssl::pkey::PKey::from_ec_key(ec)?;
-
-    ECPublicKey::new(pkey, py_curve.into())
-}
-
 #[pyo3::pymethods]
 impl ECPrivateKey {
     #[getter]
