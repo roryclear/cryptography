@@ -14,14 +14,14 @@ class EllipticCurvePrivateKey(metaclass=abc.ABCMeta): pass
 
 class EllipticCurvePublicKey(metaclass=abc.ABCMeta): pass
 
-class SECP256R1(EllipticCurve):
+class SECP256R1(metaclass=abc.ABCMeta):
     name = "secp256r1"
     key_size = 256
     group_order = (
         0xFFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551
     )
 
-_CURVE_TYPES: dict[str, EllipticCurve] = {
+_CURVE_TYPES = {
     "prime256v1": SECP256R1(),
 }
 

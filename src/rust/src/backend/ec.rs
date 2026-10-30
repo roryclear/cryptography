@@ -30,12 +30,6 @@ fn curve_from_py_curve(
     py: pyo3::Python<'_>,
     py_curve: pyo3::Bound<'_, pyo3::PyAny>,
 ) -> CryptographyResult<openssl::ec::EcGroup> {
-    if !py_curve.is_instance(&types::ELLIPTIC_CURVE.get(py)?)? {
-        return Err(CryptographyError::from(
-            pyo3::exceptions::PyTypeError::new_err("curve must be an EllipticCurve instance"),
-        ));
-    }
-
     let py_curve_name = py_curve.getattr(pyo3::intern!(py, "name"))?;
     let curve_name = &*py_curve_name.extract::<pyo3::pybacked::PyBackedStr>()?;
     let nid = match curve_name {
