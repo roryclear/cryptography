@@ -38,15 +38,7 @@ fn curve_from_py_curve(
         "secp256r1" => openssl::nid::Nid::X9_62_PRIME256V1,
         "secp384r1" => openssl::nid::Nid::SECP384R1,
         "secp521r1" => openssl::nid::Nid::SECP521R1,
-
         "secp256k1" => openssl::nid::Nid::SECP256K1,
-
-        #[cfg(not(any(CRYPTOGRAPHY_IS_BORINGSSL, CRYPTOGRAPHY_IS_AWSLC)))]
-        "brainpoolP256r1" => openssl::nid::Nid::BRAINPOOL_P256R1,
-        #[cfg(not(any(CRYPTOGRAPHY_IS_BORINGSSL, CRYPTOGRAPHY_IS_AWSLC)))]
-        "brainpoolP384r1" => openssl::nid::Nid::BRAINPOOL_P384R1,
-        #[cfg(not(any(CRYPTOGRAPHY_IS_BORINGSSL, CRYPTOGRAPHY_IS_AWSLC)))]
-        "brainpoolP512r1" => openssl::nid::Nid::BRAINPOOL_P512R1,
 
         curve_name => {
             return Err(CryptographyError::from(
@@ -57,7 +49,6 @@ fn curve_from_py_curve(
             ));
         }
     };
-
     Ok(openssl::ec::EcGroup::from_curve_name(nid).map_err(|_| {
         exceptions::UnsupportedAlgorithm::new_err((
             format!("Curve {curve_name} is not supported"),
@@ -73,19 +64,6 @@ fn py_curve_from_curve<'p>(
     Ok(types::CURVE_TYPES.get(py)?.get_item("prime256v1")?)
 }
 
-fn check_key_infinity(
-    ec: &openssl::ec::EcKeyRef<impl openssl::pkey::HasPublic>,
-) -> CryptographyResult<()> {
-    if ec.public_key().is_infinity(ec.group()) {
-        return Err(CryptographyError::from(
-            pyo3::exceptions::PyValueError::new_err(
-                "Cannot load an EC public key where the point is at infinity",
-            ),
-        ));
-    }
-    Ok(())
-}
-
 #[pyo3::pyfunction]
 #[pyo3(signature = (curve, backend=None))]
 pub(crate) fn generate_private_key(
@@ -93,8 +71,6 @@ pub(crate) fn generate_private_key(
     curve: pyo3::Bound<'_, pyo3::PyAny>,
     backend: Option<pyo3::Bound<'_, pyo3::PyAny>>,
 ) -> CryptographyResult<ECPrivateKey> {
-    println!("HERE333");
-    let _ = backend;
     let ossl_curve = curve_from_py_curve(py, curve)?;
     let key = openssl::ec::EcKey::generate(&ossl_curve)?;
     let pkey = openssl::pkey::PKey::from_ec_key(key)?;
@@ -301,7 +277,6 @@ impl ECPublicKey {
         curve: pyo3::Py<pyo3::PyAny>,
     ) -> CryptographyResult<ECPublicKey> {
         let ec = pkey.ec_key()?;
-        check_key_infinity(&ec)?;
         let mut bn_ctx = openssl::bn::BigNumContext::new()?;
         let mut cofactor = openssl::bn::BigNum::new()?;
         ec.group().cofactor(&mut cofactor, &mut bn_ctx)?;
