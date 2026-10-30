@@ -206,34 +206,6 @@ impl ECPrivateKey {
         })
     }
 
-    fn private_numbers(
-        &self,
-        py: pyo3::Python<'_>,
-    ) -> CryptographyResult<EllipticCurvePrivateNumbers> {
-        let ec = self.pkey.ec_key().unwrap();
-
-        let mut bn_ctx = openssl::bn::BigNumContext::new()?;
-        let mut x = openssl::bn::BigNum::new()?;
-        let mut y = openssl::bn::BigNum::new()?;
-        ec.public_key()
-            .affine_coordinates(ec.group(), &mut x, &mut y, &mut bn_ctx)?;
-        let py_x = utils::bn_to_py_int(py, &x)?;
-        let py_y = utils::bn_to_py_int(py, &y)?;
-
-        let py_private_key = utils::bn_to_py_int(py, ec.private_key())?;
-
-        let public_numbers = EllipticCurvePublicNumbers {
-            x: py_x.extract()?,
-            y: py_y.extract()?,
-            curve: self.curve.clone_ref(py),
-        };
-
-        Ok(EllipticCurvePrivateNumbers {
-            private_value: py_private_key.extract()?,
-            public_numbers: pyo3::Py::new(py, public_numbers)?,
-        })
-    }
-
     fn private_bytes<'p>(
         slf: &pyo3::Bound<'p, Self>,
         py: pyo3::Python<'p>,
