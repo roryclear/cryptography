@@ -261,10 +261,6 @@ mod _rust {
             CRYPTOGRAPHY_OPENSSL_350_OR_GREATER
         ))]
         #[pymodule_export]
-        use crate::backend::mlkem::mlkem;
-        #[pymodule_export]
-        use crate::backend::poly1305::poly1305;
-        #[pymodule_export]
         use crate::backend::rsa::rsa;
         #[pymodule_export]
         use crate::backend::x25519::x25519;
