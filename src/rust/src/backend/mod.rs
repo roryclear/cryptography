@@ -23,7 +23,6 @@ where
     }
 }
 
-pub(crate) mod aead;
 pub(crate) mod cipher_registry;
 pub(crate) mod ciphers;
 pub(crate) mod cmac;
