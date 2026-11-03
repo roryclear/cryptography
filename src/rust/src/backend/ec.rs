@@ -235,7 +235,6 @@ impl ECPublicKey {
         let mut bn_ctx = openssl::bn::BigNumContext::new()?;
         let mut cofactor = openssl::bn::BigNum::new()?;
         ec.group().cofactor(&mut cofactor, &mut bn_ctx)?;
-        let one = openssl::bn::BigNum::from_u32(1)?;
         Ok(ECPublicKey { pkey, curve })
     }
 }

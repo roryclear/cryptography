@@ -59,9 +59,3 @@ pub(crate) mod rand;
 pub(crate) mod rsa;
 pub(crate) mod utils;
 pub(crate) mod x25519;
-#[cfg(not(any(
-    CRYPTOGRAPHY_IS_LIBRESSL,
-    CRYPTOGRAPHY_IS_BORINGSSL,
-    CRYPTOGRAPHY_IS_AWSLC
-)))]
-pub(crate) mod x448;
