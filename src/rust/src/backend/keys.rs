@@ -137,9 +137,6 @@ fn private_key_from_pkey<'p>(
             CRYPTOGRAPHY_IS_AWSLC
         )))]
 
-        openssl::pkey::Id::ED448 => Ok(crate::backend::ed448::private_key_from_pkey(pkey)
-            .into_pyobject(py)?
-            .into_any()),
         openssl::pkey::Id::DSA => Ok(crate::backend::dsa::private_key_from_pkey(py, pkey)?
             .into_pyobject(py)?
             .into_any()),
@@ -297,10 +294,6 @@ fn public_key_from_pkey<'p>(
             CRYPTOGRAPHY_IS_BORINGSSL,
             CRYPTOGRAPHY_IS_AWSLC
         )))]
-
-        openssl::pkey::Id::ED448 => Ok(crate::backend::ed448::public_key_from_pkey(pkey)
-            .into_pyobject(py)?
-            .into_any()),
 
         openssl::pkey::Id::DSA => Ok(crate::backend::dsa::public_key_from_pkey(py, pkey)?
             .into_pyobject(py)?

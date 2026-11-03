@@ -51,18 +51,6 @@ pub(crate) fn parse_public_key_info(
             CRYPTOGRAPHY_IS_BORINGSSL,
             CRYPTOGRAPHY_IS_AWSLC
         )))]
-        AlgorithmParameters::Ed448 => Ok(ParsedPublicKey::Pkey(
-            openssl::pkey::PKey::public_key_from_raw_bytes(
-                k.subject_public_key.as_bytes(),
-                openssl::pkey::Id::ED448,
-            )
-            .map_err(|_| KeyParsingError::InvalidKey)?,
-        )),
-        #[cfg(not(any(
-            CRYPTOGRAPHY_IS_LIBRESSL,
-            CRYPTOGRAPHY_IS_BORINGSSL,
-            CRYPTOGRAPHY_IS_AWSLC
-        )))]
         AlgorithmParameters::X448 => Ok(ParsedPublicKey::Pkey(
             openssl::pkey::PKey::public_key_from_raw_bytes(
                 k.subject_public_key.as_bytes(),
@@ -190,15 +178,6 @@ pub fn serialize_public_key(
         openssl::pkey::Id::ED25519 => {
             let raw_bytes = pkey.raw_public_key()?;
             (AlgorithmParameters::Ed25519, raw_bytes)
-        }
-        #[cfg(not(any(
-            CRYPTOGRAPHY_IS_LIBRESSL,
-            CRYPTOGRAPHY_IS_BORINGSSL,
-            CRYPTOGRAPHY_IS_AWSLC
-        )))]
-        openssl::pkey::Id::ED448 => {
-            let raw_bytes = pkey.raw_public_key()?;
-            (AlgorithmParameters::Ed448, raw_bytes)
         }
         #[cfg(not(any(
             CRYPTOGRAPHY_IS_LIBRESSL,

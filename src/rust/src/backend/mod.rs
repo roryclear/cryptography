@@ -36,7 +36,6 @@ pub(crate) mod ed25519;
     CRYPTOGRAPHY_IS_BORINGSSL,
     CRYPTOGRAPHY_IS_AWSLC
 )))]
-pub(crate) mod ed448;
 pub(crate) mod hashes;
 pub(crate) mod hmac;
 pub(crate) mod kdf;
