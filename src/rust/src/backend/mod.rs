@@ -54,7 +54,6 @@ pub(crate) mod mldsa;
     CRYPTOGRAPHY_OPENSSL_350_OR_GREATER
 ))]
 pub(crate) mod mlkem;
-pub(crate) mod poly1305;
 pub(crate) mod rand;
 pub(crate) mod rsa;
 pub(crate) mod utils;
