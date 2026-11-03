@@ -481,15 +481,3 @@ pub fn verify_mu(
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::MlDsaVariant;
-
-    #[test]
-    #[should_panic(expected = "Unsupported ML-DSA variant")]
-    fn test_from_pkey_wrong_type() {
-        let key = openssl::pkey::PKey::generate_ed25519().unwrap();
-        MlDsaVariant::from_pkey(&key);
-    }
-}

@@ -139,14 +139,6 @@ fn parse_private_key_inner(k: &PrivateKeyInfo<'_>) -> KeyParsingResult<ParsedPri
             )?;
             Ok(ParsedPrivateKey::Pkey(pkey))
         }
-        AlgorithmParameters::Ed25519 => {
-            let key_bytes = asn1::parse_single(k.private_key)?;
-            let pkey = openssl::pkey::PKey::private_key_from_raw_bytes(
-                key_bytes,
-                openssl::pkey::Id::ED25519,
-            )?;
-            Ok(ParsedPrivateKey::Pkey(pkey))
-        }
 
         #[cfg(any(
             CRYPTOGRAPHY_IS_BORINGSSL,
@@ -443,11 +435,6 @@ pub fn serialize_private_key(key: &ParsedPrivateKey) -> crate::KeySerializationR
                     )),
                     pkcs1_der,
                 )
-            }
-            openssl::pkey::Id::ED25519 => {
-                let raw_bytes = pkey.raw_private_key()?;
-                let private_key_der = asn1::write_single(&raw_bytes.as_slice())?;
-                (AlgorithmParameters::Ed25519, private_key_der)
             }
             #[cfg(not(any(
                 CRYPTOGRAPHY_IS_LIBRESSL,

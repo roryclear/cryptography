@@ -30,7 +30,6 @@ pub(crate) mod cmac;
 pub(crate) mod dh;
 pub(crate) mod dsa;
 pub(crate) mod ec;
-pub(crate) mod ed25519;
 #[cfg(not(any(
     CRYPTOGRAPHY_IS_LIBRESSL,
     CRYPTOGRAPHY_IS_BORINGSSL,

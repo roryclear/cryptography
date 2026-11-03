@@ -39,13 +39,6 @@ pub(crate) fn parse_public_key_info(
             let pkey = openssl::pkey::PKey::from_ec_key(ec_key)?;
             Ok(ParsedPublicKey::Pkey(pkey))
         }
-        AlgorithmParameters::Ed25519 => Ok(ParsedPublicKey::Pkey(
-            openssl::pkey::PKey::public_key_from_raw_bytes(
-                k.subject_public_key.as_bytes(),
-                openssl::pkey::Id::ED25519,
-            )
-            .map_err(|_| KeyParsingError::InvalidKey)?,
-        )),
         #[cfg(not(any(
             CRYPTOGRAPHY_IS_LIBRESSL,
             CRYPTOGRAPHY_IS_BORINGSSL,
@@ -174,10 +167,6 @@ pub fn serialize_public_key(
                 AlgorithmParameters::Ec(EcParameters::NamedCurve(curve_oid)),
                 point_bytes,
             )
-        }
-        openssl::pkey::Id::ED25519 => {
-            let raw_bytes = pkey.raw_public_key()?;
-            (AlgorithmParameters::Ed25519, raw_bytes)
         }
         #[cfg(not(any(
             CRYPTOGRAPHY_IS_LIBRESSL,
