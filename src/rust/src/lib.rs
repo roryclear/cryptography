@@ -16,7 +16,6 @@ mod buf;
 mod declarative_asn1;
 mod error;
 mod exceptions;
-mod fernet;
 pub(crate) mod oid;
 mod padding;
 mod pkcs12;
