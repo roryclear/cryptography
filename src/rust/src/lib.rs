@@ -22,7 +22,6 @@ mod padding;
 mod pkcs12;
 mod pkcs7;
 pub(crate) mod serialization;
-mod test_support;
 pub(crate) mod types;
 mod x509;
 
