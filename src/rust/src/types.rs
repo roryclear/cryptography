@@ -411,15 +411,6 @@ pub static SECP521R1: LazyPyImport = LazyPyImport::new(
     &["SECP521R1"],
 );
 
-pub static X25519_PUBLIC_KEY: LazyPyImport = LazyPyImport::new(
-    "cryptography.hazmat.primitives.asymmetric.x25519",
-    &["X25519PublicKey"],
-);
-pub static X25519_PRIVATE_KEY: LazyPyImport = LazyPyImport::new(
-    "cryptography.hazmat.primitives.asymmetric.x25519",
-    &["X25519PrivateKey"],
-);
-
 pub static MLKEM768_PUBLIC_KEY: LazyPyImport = LazyPyImport::new(
     "cryptography.hazmat.primitives.asymmetric.mlkem",
     &["MLKEM768PublicKey"],

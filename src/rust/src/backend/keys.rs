@@ -131,10 +131,6 @@ fn private_key_from_pkey<'p>(
     unsafe_skip_rsa_key_validation: bool,
 ) -> CryptographyResult<pyo3::Bound<'p, pyo3::PyAny>> {
     match pkey.id() {
-        openssl::pkey::Id::X25519 => Ok(crate::backend::x25519::private_key_from_pkey(pkey)
-            .into_pyobject(py)?
-            .into_any()),
-
         #[cfg(not(any(
             CRYPTOGRAPHY_IS_LIBRESSL,
             CRYPTOGRAPHY_IS_BORINGSSL,
@@ -315,9 +311,6 @@ fn public_key_from_pkey<'p>(
         openssl::pkey::Id::RSA => Ok(crate::backend::rsa::public_key_from_pkey(pkey)?
             .into_pyobject(py)?
             .into_any()),
-        openssl::pkey::Id::X25519 => Ok(crate::backend::x25519::public_key_from_pkey(pkey)
-            .into_pyobject(py)?
-            .into_any()),
         #[cfg(not(any(
             CRYPTOGRAPHY_IS_LIBRESSL,
             CRYPTOGRAPHY_IS_BORINGSSL,
@@ -401,34 +394,3 @@ pub(crate) mod keys {
     };
 }
 
-#[cfg(test)]
-mod tests {
-    #[cfg(not(any(CRYPTOGRAPHY_IS_BORINGSSL, CRYPTOGRAPHY_IS_AWSLC)))]
-    use super::{private_key_from_pkey, public_key_from_pkey};
-
-    #[test]
-    #[cfg(not(any(CRYPTOGRAPHY_IS_BORINGSSL, CRYPTOGRAPHY_IS_AWSLC)))]
-    fn test_public_key_from_pkey_unknown_key() {
-        pyo3::Python::initialize();
-
-        pyo3::Python::attach(|py| {
-            let pkey =
-                openssl::pkey::PKey::public_key_from_raw_bytes(&[0; 32], openssl::pkey::Id::X25519)
-                    .unwrap();
-            // Pass a nonsense id for this key to test the unsupported
-            // algorithm path.
-            assert!(public_key_from_pkey(py, &pkey, openssl::pkey::Id::CMAC).is_err());
-        });
-    }
-
-    #[test]
-    #[cfg(not(any(CRYPTOGRAPHY_IS_BORINGSSL, CRYPTOGRAPHY_IS_AWSLC)))]
-    fn test_private_key_from_pkey_unknown_key() {
-        pyo3::Python::initialize();
-
-        pyo3::Python::attach(|py| {
-            let pkey = openssl::pkey::PKey::hmac(&[0; 32]).unwrap();
-            assert!(private_key_from_pkey(py, &pkey, false).is_err());
-        });
-    }
-}
