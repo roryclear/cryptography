@@ -160,25 +160,6 @@ fn private_key_from_pkey<'p>(
             CRYPTOGRAPHY_IS_AWSLC,
             CRYPTOGRAPHY_OPENSSL_350_OR_GREATER
         ))]
-        _ if cryptography_openssl::mlkem::is_mlkem_pkey(pkey) => {
-            match cryptography_openssl::mlkem::MlKemVariant::from_pkey(pkey) {
-                cryptography_openssl::mlkem::MlKemVariant::MlKem768 => {
-                    Ok(crate::backend::mlkem::mlkem768_private_key_from_pkey(pkey)
-                        .into_pyobject(py)?
-                        .into_any())
-                }
-                cryptography_openssl::mlkem::MlKemVariant::MlKem1024 => {
-                    Ok(crate::backend::mlkem::mlkem1024_private_key_from_pkey(pkey)
-                        .into_pyobject(py)?
-                        .into_any())
-                }
-            }
-        }
-        #[cfg(any(
-            CRYPTOGRAPHY_IS_BORINGSSL,
-            CRYPTOGRAPHY_IS_AWSLC,
-            CRYPTOGRAPHY_OPENSSL_350_OR_GREATER
-        ))]
         _ if cryptography_openssl::mldsa::is_mldsa_pkey(pkey) => {
             match cryptography_openssl::mldsa::MlDsaVariant::from_pkey(pkey) {
                 cryptography_openssl::mldsa::MlDsaVariant::MlDsa44 => {
@@ -336,25 +317,6 @@ fn public_key_from_pkey<'p>(
         openssl::pkey::Id::DHX => Ok(crate::backend::dh::public_key_from_pkey(py, pkey)?
             .into_pyobject(py)?
             .into_any()),
-        #[cfg(any(
-            CRYPTOGRAPHY_IS_BORINGSSL,
-            CRYPTOGRAPHY_IS_AWSLC,
-            CRYPTOGRAPHY_OPENSSL_350_OR_GREATER
-        ))]
-        _ if cryptography_openssl::mlkem::is_mlkem_pkey(pkey) => {
-            match cryptography_openssl::mlkem::MlKemVariant::from_pkey(pkey) {
-                cryptography_openssl::mlkem::MlKemVariant::MlKem768 => {
-                    Ok(crate::backend::mlkem::mlkem768_public_key_from_pkey(pkey)
-                        .into_pyobject(py)?
-                        .into_any())
-                }
-                cryptography_openssl::mlkem::MlKemVariant::MlKem1024 => {
-                    Ok(crate::backend::mlkem::mlkem1024_public_key_from_pkey(pkey)
-                        .into_pyobject(py)?
-                        .into_any())
-                }
-            }
-        }
 
         #[cfg(any(
             CRYPTOGRAPHY_IS_BORINGSSL,

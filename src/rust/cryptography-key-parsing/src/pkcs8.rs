@@ -166,33 +166,6 @@ fn parse_private_key_inner(k: &PrivateKeyInfo<'_>) -> KeyParsingResult<ParsedPri
             CRYPTOGRAPHY_IS_AWSLC,
             CRYPTOGRAPHY_OPENSSL_350_OR_GREATER
         ))]
-        AlgorithmParameters::MlKem768 => {
-            let MlKemPrivateKey::Seed(seed) = asn1::parse_single::<MlKemPrivateKey>(k.private_key)?;
-            let pkey = cryptography_openssl::mlkem::new_raw_private_key(
-                cryptography_openssl::mlkem::MlKemVariant::MlKem768,
-                &seed,
-            )?;
-            Ok(ParsedPrivateKey::Pkey(pkey))
-        }
-
-        #[cfg(any(
-            CRYPTOGRAPHY_IS_BORINGSSL,
-            CRYPTOGRAPHY_IS_AWSLC,
-            CRYPTOGRAPHY_OPENSSL_350_OR_GREATER
-        ))]
-        AlgorithmParameters::MlKem1024 => {
-            let MlKemPrivateKey::Seed(seed) = asn1::parse_single::<MlKemPrivateKey>(k.private_key)?;
-            let pkey = cryptography_openssl::mlkem::new_raw_private_key(
-                cryptography_openssl::mlkem::MlKemVariant::MlKem1024,
-                &seed,
-            )?;
-            Ok(ParsedPrivateKey::Pkey(pkey))
-        }
-        #[cfg(any(
-            CRYPTOGRAPHY_IS_BORINGSSL,
-            CRYPTOGRAPHY_IS_AWSLC,
-            CRYPTOGRAPHY_OPENSSL_350_OR_GREATER
-        ))]
         AlgorithmParameters::MlDsa44 => {
             let MlDsaPrivateKey::Seed(seed) = asn1::parse_single::<MlDsaPrivateKey>(k.private_key)?;
             Ok(ParsedPrivateKey::Pkey(
@@ -560,24 +533,6 @@ pub fn serialize_private_key(key: &ParsedPrivateKey) -> crate::KeySerializationR
                     AlgorithmParameters::DhKeyAgreement(basic_params)
                 };
 
-                (params, private_key_der)
-            }
-            #[cfg(any(
-                CRYPTOGRAPHY_IS_BORINGSSL,
-                CRYPTOGRAPHY_IS_AWSLC,
-                CRYPTOGRAPHY_OPENSSL_350_OR_GREATER
-            ))]
-            _ if cryptography_openssl::mlkem::is_mlkem_pkey(pkey) => {
-                let seed = cryptography_openssl::mlkem::mlkem_seed_raw(pkey)?;
-                let private_key_der = asn1::write_single(&MlKemPrivateKey::Seed(seed))?;
-                let params = match cryptography_openssl::mlkem::MlKemVariant::from_pkey(pkey) {
-                    cryptography_openssl::mlkem::MlKemVariant::MlKem768 => {
-                        AlgorithmParameters::MlKem768
-                    }
-                    cryptography_openssl::mlkem::MlKemVariant::MlKem1024 => {
-                        AlgorithmParameters::MlKem1024
-                    }
-                };
                 (params, private_key_der)
             }
             #[cfg(any(

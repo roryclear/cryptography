@@ -119,30 +119,6 @@ pub(crate) fn parse_public_key_info(
             CRYPTOGRAPHY_IS_AWSLC,
             CRYPTOGRAPHY_OPENSSL_350_OR_GREATER
         ))]
-        AlgorithmParameters::MlKem768 => Ok(ParsedPublicKey::Pkey(
-            cryptography_openssl::mlkem::new_raw_public_key(
-                cryptography_openssl::mlkem::MlKemVariant::MlKem768,
-                k.subject_public_key.as_bytes(),
-            )
-            .map_err(|_| KeyParsingError::InvalidKey)?,
-        )),
-        #[cfg(any(
-            CRYPTOGRAPHY_IS_BORINGSSL,
-            CRYPTOGRAPHY_IS_AWSLC,
-            CRYPTOGRAPHY_OPENSSL_350_OR_GREATER
-        ))]
-        AlgorithmParameters::MlKem1024 => Ok(ParsedPublicKey::Pkey(
-            cryptography_openssl::mlkem::new_raw_public_key(
-                cryptography_openssl::mlkem::MlKemVariant::MlKem1024,
-                k.subject_public_key.as_bytes(),
-            )
-            .map_err(|_| KeyParsingError::InvalidKey)?,
-        )),
-        #[cfg(any(
-            CRYPTOGRAPHY_IS_BORINGSSL,
-            CRYPTOGRAPHY_IS_AWSLC,
-            CRYPTOGRAPHY_OPENSSL_350_OR_GREATER
-        ))]
         AlgorithmParameters::MlDsa44 => Ok(ParsedPublicKey::Pkey(
             cryptography_openssl::mldsa::new_raw_public_key(
                 cryptography_openssl::mldsa::MlDsaVariant::MlDsa44,
@@ -284,23 +260,6 @@ pub fn serialize_public_key(
             };
 
             (params, pub_key_der)
-        }
-        #[cfg(any(
-            CRYPTOGRAPHY_IS_BORINGSSL,
-            CRYPTOGRAPHY_IS_AWSLC,
-            CRYPTOGRAPHY_OPENSSL_350_OR_GREATER
-        ))]
-        _ if cryptography_openssl::mlkem::is_mlkem_pkey(pkey) => {
-            let raw_bytes = pkey.raw_public_key()?;
-            let params = match cryptography_openssl::mlkem::MlKemVariant::from_pkey(pkey) {
-                cryptography_openssl::mlkem::MlKemVariant::MlKem768 => {
-                    AlgorithmParameters::MlKem768
-                }
-                cryptography_openssl::mlkem::MlKemVariant::MlKem1024 => {
-                    AlgorithmParameters::MlKem1024
-                }
-            };
-            (params, raw_bytes)
         }
         #[cfg(any(
             CRYPTOGRAPHY_IS_BORINGSSL,
