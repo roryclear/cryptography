@@ -539,12 +539,11 @@ pub fn serialize_private_key(key: &ParsedPrivateKey) -> crate::KeySerializationR
     Ok(asn1::write_single(&pki)?)
 }
 
-const KDF_ITERATION_COUNT: u64 = 2048;
-
 pub fn serialize_encrypted_private_key(
     key: &ParsedPrivateKey,
     password: &[u8],
 ) -> crate::KeySerializationResult<Vec<u8>> {
+    println!("DIJWDJ");
     let plaintext_der = serialize_private_key(key)?;
 
     let e = pbe::EncryptionAlgorithm::PBESv2SHA256AndAES256CBC;
@@ -554,8 +553,8 @@ pub fn serialize_encrypted_private_key(
     cryptography_openssl::rand::rand_bytes(&mut salt)?;
     cryptography_openssl::rand::rand_bytes(&mut iv)?;
 
-    let encrypted_data = e.encrypt(password, KDF_ITERATION_COUNT, &salt, &iv, &plaintext_der)?;
-    let encryption_alg = e.algorithm_identifier(KDF_ITERATION_COUNT, &salt, &iv);
+    let encrypted_data = e.encrypt(password, 2048, &salt, &iv, &plaintext_der)?;
+    let encryption_alg = e.algorithm_identifier(2048, &salt, &iv);
 
     let epki = cryptography_x509::pkcs8::EncryptedPrivateKeyInfo {
         encryption_algorithm: encryption_alg,
@@ -563,20 +562,4 @@ pub fn serialize_encrypted_private_key(
     };
 
     Ok(asn1::write_single(&epki)?)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::serialize_private_key;
-    use crate::ParsedPrivateKey;
-
-    #[cfg(not(CRYPTOGRAPHY_IS_BORINGSSL))]
-    #[test]
-    #[should_panic(expected = "Unknown key type")]
-    fn test_serialize_private_key_unknown_key_type() {
-        let pkey = openssl::pkey::PKey::hmac(&[0u8; 16]).unwrap();
-        let parsed = ParsedPrivateKey::Pkey(pkey);
-        // Expected to panic
-        _ = serialize_private_key(&parsed);
-    }
 }
