@@ -13,7 +13,6 @@ use crate::error::CryptographyResult;
 mod asn1;
 mod backend;
 mod buf;
-mod declarative_asn1;
 mod error;
 mod exceptions;
 pub(crate) mod oid;
