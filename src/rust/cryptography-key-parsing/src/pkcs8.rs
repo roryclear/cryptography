@@ -241,31 +241,6 @@ fn pkcs12_pbe_decrypt(
         .map_err(|_| KeyParsingError::IncorrectPassword)
 }
 
-fn pkcs5_pbe_decrypt(
-    data: &[u8],
-    password: &[u8],
-    cipher: openssl::symm::Cipher,
-    hash: openssl::hash::MessageDigest,
-    params: &PbeParams,
-) -> KeyParsingResult<Vec<u8>> {
-    // PKCS#5 v1.5 uses PBKDF1 with iteration count
-    // For PKCS#5 PBE, we need key + IV length
-    let key_iv_len = cipher.key_len() + cipher.iv_len().unwrap();
-    let key_iv = cryptography_crypto::pbkdf1::pbkdf1(
-        hash,
-        password,
-        params.salt,
-        params.iterations,
-        key_iv_len,
-    )?;
-
-    let key = &key_iv[..cipher.key_len()];
-    let iv = &key_iv[cipher.key_len()..];
-
-    openssl::symm::decrypt(cipher, key, Some(iv), data)
-        .map_err(|_| KeyParsingError::IncorrectPassword)
-}
-
 pub fn parse_encrypted_private_key(
     data: &[u8],
     password: Option<&[u8]>,
@@ -277,36 +252,7 @@ pub fn parse_encrypted_private_key(
     };
 
     let plaintext = match epki.encryption_algorithm.params {
-        AlgorithmParameters::PbeWithMd5AndDesCbc(params) => pkcs5_pbe_decrypt(
-            epki.encrypted_data,
-            password,
-            openssl::symm::Cipher::des_cbc(),
-            openssl::hash::MessageDigest::md5(),
-            &params,
-        )?,
-        AlgorithmParameters::PbeWithShaAnd3KeyTripleDesCbc(params) => pkcs12_pbe_decrypt(
-            epki.encrypted_data,
-            password,
-            openssl::symm::Cipher::des_ede3_cbc(),
-            openssl::hash::MessageDigest::sha1(),
-            &params,
-        )?,
         #[cfg(not(CRYPTOGRAPHY_OSSLCONF = "OPENSSL_NO_RC2"))]
-        AlgorithmParameters::PbeWithShaAnd40BitRc2Cbc(params) => pkcs12_pbe_decrypt(
-            epki.encrypted_data,
-            password,
-            openssl::symm::Cipher::rc2_40_cbc(),
-            openssl::hash::MessageDigest::sha1(),
-            &params,
-        )?,
-        #[cfg(not(CRYPTOGRAPHY_OSSLCONF = "OPENSSL_NO_RC4"))]
-        AlgorithmParameters::PbeWithShaAnd128BitRc4(params) => pkcs12_pbe_decrypt(
-            epki.encrypted_data,
-            password,
-            openssl::symm::Cipher::rc4(),
-            openssl::hash::MessageDigest::sha1(),
-            &params,
-        )?,
         AlgorithmParameters::Pbes2(params) => {
             let (cipher, iv) = match params.encryption_scheme.params {
                 AlgorithmParameters::DesEde3Cbc(ref iv) => {

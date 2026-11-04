@@ -70,11 +70,6 @@ pub fn decrypt_pem<'a>(
 pub const ENCODE_CONFIG: pem::EncodeConfig =
     pem::EncodeConfig::new().set_line_ending(pem::LineEnding::LF);
 
-/// Encrypts DER data with legacy PEM encryption (Proc-Type and DEK-Info
-/// headers). Returns PEM-formatted bytes with encryption headers.
-///
-/// If password is empty, returns unencrypted PEM. Otherwise, encrypts using
-/// AES-256-CBC.
 pub fn encrypt_pem(
     tag: &str,
     der_data: &[u8],
