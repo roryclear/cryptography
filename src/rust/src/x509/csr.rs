@@ -48,16 +48,6 @@ impl CertificateSigningRequest {
         self.raw.borrow_owner().as_bytes(py) == other.raw.borrow_owner().as_bytes(py)
     }
 
-    fn public_key<'p>(
-        &self,
-        py: pyo3::Python<'p>,
-    ) -> CryptographyResult<pyo3::Bound<'p, pyo3::PyAny>> {
-        keys::load_der_public_key_bytes(
-            py,
-            self.raw.borrow_dependent().csr_info.spki.tlv().full_data(),
-        )
-    }
-
     #[getter]
     fn public_key_algorithm_oid<'p>(
         &self,
@@ -182,19 +172,6 @@ impl CertificateSigningRequest {
         x509::parse_and_cache_extensions(py, &self.cached_extensions, &raw_exts, |ext| {
             certificate::parse_cert_ext(py, ext)
         })
-    }
-
-    #[getter]
-    fn is_signature_valid(&self, py: pyo3::Python<'_>) -> CryptographyResult<bool> {
-        let public_key = self.public_key(py)?;
-        Ok(sign::verify_signature_with_signature_algorithm(
-            py,
-            public_key,
-            &self.raw.borrow_dependent().signature_alg,
-            self.raw.borrow_dependent().signature.as_bytes(),
-            &asn1::write_single(&self.raw.borrow_dependent().csr_info)?,
-        )
-        .is_ok())
     }
 }
 
