@@ -37,6 +37,7 @@ pub(crate) fn encode_name<'p>(
     ka: &'p cryptography_keepalive::KeepAlive<pyo3::pybacked::PyBackedBytes>,
     py_name: &pyo3::Bound<'_, pyo3::PyAny>,
 ) -> pyo3::PyResult<Name<'p>> {
+    println!("FFFFF");
     let mut rdns = vec![];
 
     for py_rdn in py_name.getattr(pyo3::intern!(py, "rdns"))?.try_iter()? {
@@ -110,17 +111,6 @@ pub(crate) fn encode_name_entry<'p>(
 }
 
 #[pyo3::pyfunction]
-pub(crate) fn encode_name_bytes<'p>(
-    py: pyo3::Python<'p>,
-    py_name: &pyo3::Bound<'p, pyo3::PyAny>,
-) -> CryptographyResult<pyo3::Bound<'p, pyo3::types::PyBytes>> {
-    let ka = cryptography_keepalive::KeepAlive::new();
-    let name = encode_name(py, &ka, py_name)?;
-    let result = asn1::write_single(&name)?;
-    Ok(pyo3::types::PyBytes::new(py, &result))
-}
-
-#[pyo3::pyfunction]
 pub(crate) fn parse_name_bytes<'p>(
     py: pyo3::Python<'p>,
     data: &[u8],
@@ -135,6 +125,7 @@ pub(crate) fn encode_general_names<'a>(
     ka_str: &'a cryptography_keepalive::KeepAlive<pyo3::pybacked::PyBackedStr>,
     py_gns: &pyo3::Bound<'a, pyo3::PyAny>,
 ) -> Result<Vec<GeneralName<'a>>, CryptographyError> {
+    println!("DIDEID");
     let mut gns = vec![];
     for el in py_gns.try_iter()? {
         let gn = encode_general_name(py, ka_bytes, ka_str, &el?)?;
@@ -149,6 +140,7 @@ pub(crate) fn encode_general_name<'a>(
     ka_str: &'a cryptography_keepalive::KeepAlive<pyo3::pybacked::PyBackedStr>,
     gn: &pyo3::Bound<'a, pyo3::PyAny>,
 ) -> Result<GeneralName<'a>, CryptographyError> {
+    println!("DIDIID");
     let gn_type = gn.get_type();
     let gn_value = gn.getattr(pyo3::intern!(py, "value"))?;
 
@@ -189,27 +181,6 @@ pub(crate) fn encode_general_name<'a>(
             pyo3::exceptions::PyValueError::new_err("Unsupported GeneralName type"),
         ))
     }
-}
-
-pub(crate) fn encode_access_descriptions<'a>(
-    py: pyo3::Python<'a>,
-    py_ads: &pyo3::Bound<'a, pyo3::PyAny>,
-) -> CryptographyResult<Vec<u8>> {
-    let mut ads = vec![];
-    let ka_bytes = cryptography_keepalive::KeepAlive::new();
-    let ka_str = cryptography_keepalive::KeepAlive::new();
-    for py_ad in py_ads.try_iter()? {
-        let py_ad = py_ad?;
-        let py_oid = py_ad.getattr(pyo3::intern!(py, "access_method"))?;
-        let access_method = py_oid_to_oid(py_oid)?;
-        let py_access_location = py_ad.getattr(pyo3::intern!(py, "access_location"))?;
-        let access_location = encode_general_name(py, &ka_bytes, &ka_str, &py_access_location)?;
-        ads.push(AccessDescription {
-            access_method,
-            access_location,
-        });
-    }
-    Ok(asn1::write_single(&asn1::SequenceOfWriter::new(ads))?)
 }
 
 pub(crate) fn parse_name<'p>(

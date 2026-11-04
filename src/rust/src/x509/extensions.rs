@@ -582,10 +582,6 @@ pub(crate) fn encode_extension(
             let der = encode_key_usage(py, ext)?;
             Ok(Some(der))
         }
-        &oid::AUTHORITY_INFORMATION_ACCESS_OID | &oid::SUBJECT_INFORMATION_ACCESS_OID => {
-            let der = x509::common::encode_access_descriptions(ext.py(), ext)?;
-            Ok(Some(der))
-        }
         &oid::EXTENDED_KEY_USAGE_OID | &oid::ACCEPTABLE_RESPONSES_OID => {
             let der = encode_oid_sequence(ext)?;
             Ok(Some(der))
@@ -637,12 +633,6 @@ pub(crate) fn encode_extension(
                 &asn1::BigUint::new(&bytes).unwrap(),
             )?))
         }
-        &oid::ISSUER_ALTERNATIVE_NAME_OID | &oid::SUBJECT_ALTERNATIVE_NAME_OID => {
-            let ka_bytes = cryptography_keepalive::KeepAlive::new();
-            let ka_str = cryptography_keepalive::KeepAlive::new();
-            let gns = x509::common::encode_general_names(ext.py(), &ka_bytes, &ka_str, ext)?;
-            Ok(Some(asn1::write_single(&asn1::SequenceOfWriter::new(gns))?))
-        }
         &oid::AUTHORITY_KEY_IDENTIFIER_OID => {
             let der = encode_authority_key_identifier(ext.py(), ext)?;
             Ok(Some(der))
@@ -668,12 +658,6 @@ pub(crate) fn encode_extension(
                 .get_item(ext.getattr(pyo3::intern!(py, "reason"))?)?
                 .extract::<u32>()?;
             Ok(Some(asn1::write_single(&asn1::Enumerated::new(value))?))
-        }
-        &oid::CERTIFICATE_ISSUER_OID => {
-            let ka_bytes = cryptography_keepalive::KeepAlive::new();
-            let ka_str = cryptography_keepalive::KeepAlive::new();
-            let gns = x509::common::encode_general_names(ext.py(), &ka_bytes, &ka_str, ext)?;
-            Ok(Some(asn1::write_single(&asn1::SequenceOfWriter::new(gns))?))
         }
         &oid::INVALIDITY_DATE_OID => {
             let py_dt = ext
