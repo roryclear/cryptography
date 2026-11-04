@@ -88,109 +88,6 @@ fn serialize_certificates<'p>(
 }
 
 #[pyo3::pyfunction]
-fn encrypt_and_serialize<'p>(
-    py: pyo3::Python<'p>,
-    builder: &pyo3::Bound<'p, pyo3::PyAny>,
-    content_encryption_algorithm: &pyo3::Bound<'p, pyo3::PyAny>,
-    encoding: crate::serialization::Encoding,
-    options: &pyo3::Bound<'p, pyo3::types::PyList>,
-) -> CryptographyResult<pyo3::Bound<'p, pyo3::types::PyBytes>> {
-    let raw_data: CffiBuf<'p> = builder.getattr(pyo3::intern!(py, "_data"))?.extract()?;
-    let text_mode = options.contains(types::PKCS7_TEXT.get(py)?)?;
-    let data_with_header = if options.contains(types::PKCS7_BINARY.get(py)?)? {
-        Cow::Borrowed(raw_data.as_bytes())
-    } else {
-        smime_canonicalize(raw_data.as_bytes(), text_mode).0
-    };
-
-    // Get the content encryption algorithm
-    let content_encryption_algorithm_type = content_encryption_algorithm;
-    let key_size = content_encryption_algorithm_type.getattr(pyo3::intern!(py, "key_size"))?;
-    let key = crate::backend::rand::get_rand_bytes(py, key_size.floor_div(8)?.extract()?)?;
-    let content_encryption_algorithm = content_encryption_algorithm_type.call1((&key,))?;
-
-    // Get the mode
-    let iv = crate::backend::rand::get_rand_bytes(py, 16)?;
-    let cbc_mode = types::CBC.get(py)?.call1((&iv,))?;
-
-    let encrypted_content = symmetric_encrypt(
-        py,
-        content_encryption_algorithm,
-        cbc_mode,
-        &data_with_header,
-    )?;
-
-    let py_recipients: Vec<pyo3::Bound<'p, x509::certificate::Certificate>> = builder
-        .getattr(pyo3::intern!(py, "_recipients"))?
-        .extract()?;
-
-    let mut recipient_infos = vec![];
-    let padding = types::PKCS1V15.get(py)?.call0()?;
-    let ka_bytes = cryptography_keepalive::KeepAlive::new();
-    for cert in py_recipients.iter() {
-        // Currently, keys are encrypted with RSA (PKCS #1 v1.5), which the S/MIME v3.2 RFC
-        // specifies as MUST support (https://datatracker.ietf.org/doc/html/rfc5751#section-2.3)
-        // however rest of S/MIME v3.2 is not currently supported
-        let encrypted_key = cert
-            .call_method0(pyo3::intern!(py, "public_key"))?
-            .call_method1(pyo3::intern!(py, "encrypt"), (&key, &padding))?
-            .extract::<pyo3::pybacked::PyBackedBytes>()?;
-
-        recipient_infos.push(pkcs7::RecipientInfo {
-            version: 0,
-            issuer_and_serial_number: pkcs7::IssuerAndSerialNumber {
-                issuer: cert.get().raw.borrow_dependent().tbs_cert.issuer.clone(),
-                serial_number: cert.get().raw.borrow_dependent().tbs_cert.serial,
-            },
-            key_encryption_algorithm: AlgorithmIdentifier {
-                oid: asn1::DefinedByMarker::marker(),
-                params: AlgorithmParameters::Rsa(Some(())),
-            },
-            encrypted_key: ka_bytes.add(encrypted_key),
-        });
-    }
-
-    // Prepare the algorithm parameters
-    let algorithm_parameters = if content_encryption_algorithm_type.eq(types::AES128.get(py)?)? {
-        AlgorithmParameters::Aes128Cbc(iv.extract()?)
-    } else {
-        AlgorithmParameters::Aes256Cbc(iv.extract()?)
-    };
-
-    let enveloped_data = pkcs7::EnvelopedData {
-        version: 0,
-        recipient_infos: common::Asn1ReadableOrWritable::new_write(asn1::SetOfWriter::new(
-            &recipient_infos,
-        )),
-
-        encrypted_content_info: pkcs7::EncryptedContentInfo {
-            content_type: PKCS7_DATA_OID,
-            content_encryption_algorithm: AlgorithmIdentifier {
-                oid: asn1::DefinedByMarker::marker(),
-                params: algorithm_parameters,
-            },
-            encrypted_content: Some(&encrypted_content),
-        },
-    };
-
-    let content_info = pkcs7::ContentInfo {
-        _content_type: asn1::DefinedByMarker::marker(),
-        content: pkcs7::Content::EnvelopedData(asn1::Explicit::new(Box::new(enveloped_data))),
-    };
-    let ci_bytes = asn1::write_single(&content_info)?;
-
-    if encoding == crate::serialization::Encoding::SMIME {
-        Ok(types::SMIME_ENVELOPED_ENCODE
-            .get(py)?
-            .call1((&*ci_bytes,))?
-            .extract()?)
-    } else {
-        // Handles the DER, PEM, and error cases
-        encode_der_data(py, "PKCS7".to_string(), ci_bytes, encoding)
-    }
-}
-
-#[pyo3::pyfunction]
 fn decrypt_smime<'p>(
     py: pyo3::Python<'p>,
     data: CffiBuf<'p>,
@@ -874,7 +771,7 @@ fn load_der_pkcs7_certificates(
 pub(crate) mod pkcs7_mod {
     #[pymodule_export]
     use super::{
-        decrypt_der, decrypt_pem, decrypt_smime, encrypt_and_serialize,
+        decrypt_der, decrypt_pem, decrypt_smime,
         load_der_pkcs7_certificates, load_pem_pkcs7_certificates, serialize_certificates,
         sign_and_serialize,
     };
