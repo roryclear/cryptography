@@ -430,130 +430,6 @@ fn serialize_java_truststore<'p>(
     serialize_safebags(py, &safebags, &encryption_details)
 }
 
-#[pyo3::pyfunction]
-#[pyo3(signature = (name, key, cert, cas, encryption_algorithm))]
-fn serialize_key_and_certificates<'p>(
-    py: pyo3::Python<'p>,
-    name: Option<&[u8]>,
-    key: Option<pyo3::Bound<'_, pyo3::PyAny>>,
-    cert: Option<&Certificate>,
-    cas: Option<pyo3::Bound<'_, pyo3::PyAny>>,
-    encryption_algorithm: pyo3::Bound<'_, pyo3::PyAny>,
-) -> CryptographyResult<pyo3::Bound<'p, pyo3::types::PyBytes>> {
-    let encryption_details = decode_encryption_algorithm(py, encryption_algorithm)?;
-    let password = &encryption_details.password;
-
-    let mut safebags = vec![];
-    let (key_salt, key_iv, key_ciphertext, pkcs8_bytes);
-    let mut ca_certs = vec![];
-    let mut key_id = None;
-    if cert.is_some() || cas.is_some() {
-        if let Some(cert) = cert {
-            if let Some(ref key) = key {
-                if !cert
-                    .public_key(py)?
-                    .eq(key.call_method0(pyo3::intern!(py, "public_key"))?)?
-                {
-                    return Err(CryptographyError::from(
-                        pyo3::exceptions::PyValueError::new_err(
-                            "Certificate public key and provided private key do not match",
-                        ),
-                    ));
-                }
-                key_id = Some(cert.fingerprint(py, &types::SHA1.get(py)?.call0()?)?);
-            }
-
-            safebags.push(cert_to_bag(
-                cert,
-                name,
-                key_id.as_ref().map(|v| v.as_bytes()),
-                false,
-            )?);
-        }
-
-        if let Some(cas) = cas {
-            for cert in cas.try_iter()? {
-                ca_certs.push(cert?.extract::<CertificateOrPKCS12Certificate>()?);
-            }
-
-            for cert in &ca_certs {
-                let bag = match cert {
-                    CertificateOrPKCS12Certificate::Certificate(c) => {
-                        cert_to_bag(c.get(), None, None, false)?
-                    }
-                    CertificateOrPKCS12Certificate::PKCS12Certificate(c) => cert_to_bag(
-                        c.get().certificate.get(),
-                        c.get().friendly_name.as_ref().map(|v| v.as_bytes(py)),
-                        None,
-                        false,
-                    )?,
-                };
-                safebags.push(bag);
-            }
-        }
-    }
-
-    if let Some(key) = key {
-        let no_encryption = types::NO_ENCRYPTION.get(py)?.call0()?;
-
-        pkcs8_bytes = key
-            .call_method1(
-                pyo3::intern!(py, "private_bytes"),
-                (
-                    crate::serialization::Encoding::DER,
-                    crate::serialization::PrivateFormat::PKCS8,
-                    no_encryption,
-                ),
-            )?
-            .extract::<pyo3::pybacked::PyBackedBytes>()?;
-
-        let key_bag = if let Some(ref e) = encryption_details.encryption_algorithm {
-            key_salt = crate::backend::rand::get_rand_bytes(py, e.salt_length())?
-                .extract::<pyo3::pybacked::PyBackedBytes>()?;
-            key_iv = crate::backend::rand::get_rand_bytes(py, 16)?
-                .extract::<pyo3::pybacked::PyBackedBytes>()?;
-            key_ciphertext = e.encrypt(
-                password,
-                encryption_details.cipher_kdf_iter,
-                &key_salt,
-                &key_iv,
-                &pkcs8_bytes,
-            )?;
-
-            cryptography_x509::pkcs12::SafeBag {
-                _bag_id: asn1::DefinedByMarker::marker(),
-                bag_value: asn1::Explicit::new(
-                    cryptography_x509::pkcs12::BagValue::ShroudedKeyBag(
-                        cryptography_x509::pkcs8::EncryptedPrivateKeyInfo {
-                            encryption_algorithm: e.algorithm_identifier(
-                                encryption_details.cipher_kdf_iter,
-                                &key_salt,
-                                &key_iv,
-                            ),
-                            encrypted_data: &key_ciphertext,
-                        },
-                    ),
-                ),
-                attributes: pkcs12_attributes(name, key_id.as_ref().map(|v| v.as_bytes()), false)?,
-            }
-        } else {
-            let pkcs8_tlv = asn1::parse_single(&pkcs8_bytes)?;
-
-            cryptography_x509::pkcs12::SafeBag {
-                _bag_id: asn1::DefinedByMarker::marker(),
-                bag_value: asn1::Explicit::new(cryptography_x509::pkcs12::BagValue::KeyBag(
-                    pkcs8_tlv,
-                )),
-                attributes: pkcs12_attributes(name, key_id.as_ref().map(|v| v.as_bytes()), false)?,
-            }
-        };
-
-        safebags.push(key_bag);
-    }
-
-    serialize_safebags(py, &safebags, &encryption_details)
-}
-
 fn decode_p12(
     py: pyo3::Python<'_>,
     data: CffiBuf<'_>,
@@ -701,6 +577,6 @@ pub(crate) mod pkcs12 {
     #[pymodule_export]
     use super::{
         load_key_and_certificates, load_pkcs12, serialize_java_truststore,
-        serialize_key_and_certificates, PKCS12Certificate,
+        PKCS12Certificate,
     };
 }

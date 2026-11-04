@@ -77,23 +77,6 @@ impl Certificate {
         slf
     }
 
-    pub(crate) fn public_key<'p>(
-        &self,
-        py: pyo3::Python<'p>,
-    ) -> CryptographyResult<pyo3::Bound<'p, pyo3::PyAny>> {
-        Ok(self
-            .cached_public_key
-            .get_or_try_init(py, || {
-                keys::load_der_public_key_bytes(
-                    py,
-                    self.raw.borrow_dependent().tbs_cert.spki.tlv().full_data(),
-                )
-                .map(|v| v.unbind())
-            })?
-            .bind(py)
-            .clone())
-    }
-
     #[getter]
     fn public_key_algorithm_oid<'p>(
         &self,

@@ -209,6 +209,7 @@ pub(crate) fn load_der_public_key_bytes<'p>(
     py: pyo3::Python<'p>,
     data: &[u8],
 ) -> CryptographyResult<pyo3::Bound<'p, pyo3::PyAny>> {
+    println!("AAAA");
     match cryptography_key_parsing::spki::parse_public_key(data) {
         Ok(parsed) => public_key_from_parsed(py, parsed),
         // It's not a (RSA/DSA/ECDSA) subjectPublicKeyInfo, but we still need
