@@ -28,30 +28,10 @@ pub(crate) struct ECPublicKey {
 
 fn curve_from_py_curve(
     py: pyo3::Python<'_>,
-    py_curve: pyo3::Bound<'_, pyo3::PyAny>,
 ) -> CryptographyResult<openssl::ec::EcGroup> {
-    let py_curve_name = py_curve.getattr(pyo3::intern!(py, "name"))?;
-    let curve_name = &*py_curve_name.extract::<pyo3::pybacked::PyBackedStr>()?;
-    let nid = match curve_name {
-        "secp192r1" => openssl::nid::Nid::X9_62_PRIME192V1,
-        "secp224r1" => openssl::nid::Nid::SECP224R1,
-        "secp256r1" => openssl::nid::Nid::X9_62_PRIME256V1,
-        "secp384r1" => openssl::nid::Nid::SECP384R1,
-        "secp521r1" => openssl::nid::Nid::SECP521R1,
-        "secp256k1" => openssl::nid::Nid::SECP256K1,
-
-        curve_name => {
-            return Err(CryptographyError::from(
-                exceptions::UnsupportedAlgorithm::new_err((
-                    format!("Curve {curve_name} is not supported"),
-                    exceptions::Reasons::UNSUPPORTED_ELLIPTIC_CURVE,
-                )),
-            ));
-        }
-    };
-    Ok(openssl::ec::EcGroup::from_curve_name(nid).map_err(|_| {
+    Ok(openssl::ec::EcGroup::from_curve_name(openssl::nid::Nid::X9_62_PRIME256V1).map_err(|_| {
         exceptions::UnsupportedAlgorithm::new_err((
-            format!("Curve {curve_name} is not supported"),
+            format!("Curve is not supported"),
             exceptions::Reasons::UNSUPPORTED_ELLIPTIC_CURVE,
         ))
     })?)
@@ -65,13 +45,12 @@ fn py_curve_from_curve<'p>(
 }
 
 #[pyo3::pyfunction]
-#[pyo3(signature = (curve, backend=None))]
+#[pyo3(signature = (curve))]
 pub(crate) fn generate_private_key(
     py: pyo3::Python<'_>,
-    curve: pyo3::Bound<'_, pyo3::PyAny>,
-    backend: Option<pyo3::Bound<'_, pyo3::PyAny>>,
+    curve: pyo3::Bound<'_, pyo3::PyAny>
 ) -> CryptographyResult<ECPrivateKey> {
-    let ossl_curve = curve_from_py_curve(py, curve)?;
+    let ossl_curve = curve_from_py_curve(py)?;
     let key = openssl::ec::EcKey::generate(&ossl_curve)?;
     let pkey = openssl::pkey::PKey::from_ec_key(key)?;
 
@@ -311,3 +290,4 @@ pub(crate) mod ec {
     #[pymodule_export]
     use super::{generate_private_key};
 }
+
