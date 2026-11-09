@@ -205,19 +205,6 @@ impl ECPrivateKey {
     }
 }
 
-impl ECPublicKey {
-    fn new(
-        pkey: openssl::pkey::PKey<openssl::pkey::Public>,
-        curve: pyo3::Py<pyo3::PyAny>,
-    ) -> CryptographyResult<ECPublicKey> {
-        let ec = pkey.ec_key()?;
-        let mut bn_ctx = openssl::bn::BigNumContext::new()?;
-        let mut cofactor = openssl::bn::BigNum::new()?;
-        ec.group().cofactor(&mut cofactor, &mut bn_ctx)?;
-        Ok(ECPublicKey { pkey, curve })
-    }
-}
-
 #[pyo3::pymethods]
 impl ECPublicKey {
     #[getter]
@@ -236,53 +223,6 @@ impl ECPublicKey {
     ) -> CryptographyResult<pyo3::Bound<'p, pyo3::types::PyBytes>> {
         utils::pkey_public_bytes(py, slf, &slf.borrow().pkey, encoding, format, true, false)
     }
-}
-
-#[pyo3::pyclass(frozen, module = "cryptography.hazmat.primitives.asymmetric.ec")]
-struct EllipticCurvePrivateNumbers {
-    #[pyo3(get)]
-    private_value: pyo3::Py<pyo3::types::PyInt>,
-    #[pyo3(get)]
-    public_numbers: pyo3::Py<EllipticCurvePublicNumbers>,
-}
-
-#[pyo3::pyclass(frozen, module = "cryptography.hazmat.primitives.asymmetric.ec")]
-struct EllipticCurvePublicNumbers {
-    #[pyo3(get)]
-    x: pyo3::Py<pyo3::types::PyInt>,
-    #[pyo3(get)]
-    y: pyo3::Py<pyo3::types::PyInt>,
-    #[pyo3(get)]
-    curve: pyo3::Py<pyo3::PyAny>,
-}
-
-fn public_key_from_numbers(
-    py: pyo3::Python<'_>,
-    numbers: &EllipticCurvePublicNumbers,
-    curve: &openssl::ec::EcGroupRef,
-) -> CryptographyResult<openssl::ec::EcKey<openssl::pkey::Public>> {
-    if numbers.x.bind(py).lt(0)? || numbers.y.bind(py).lt(0)? {
-        return Err(CryptographyError::from(
-            pyo3::exceptions::PyValueError::new_err(
-                "Invalid EC key. Both x and y must be non-negative.",
-            ),
-        ));
-    }
-
-    let x = utils::py_int_to_bn(py, numbers.x.bind(py))?;
-    let y = utils::py_int_to_bn(py, numbers.y.bind(py))?;
-
-    let mut point = openssl::ec::EcPoint::new(curve)?;
-    let mut bn_ctx = openssl::bn::BigNumContext::new()?;
-    point
-        .set_affine_coordinates_gfp(curve, &x, &y, &mut bn_ctx)
-        .map_err(|_| {
-            pyo3::exceptions::PyValueError::new_err(
-                "Invalid EC key. Point is not on the curve specified.",
-            )
-        })?;
-
-    Ok(openssl::ec::EcKey::from_public_key(curve, &point)?)
 }
 
 #[pyo3::pymodule(gil_used = false)]
