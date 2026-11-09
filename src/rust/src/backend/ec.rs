@@ -26,38 +26,24 @@ pub(crate) struct ECPublicKey {
     curve: pyo3::Py<pyo3::PyAny>,
 }
 
-fn curve_from_py_curve(
-    py: pyo3::Python<'_>,
-) -> CryptographyResult<openssl::ec::EcGroup> {
-    Ok(openssl::ec::EcGroup::from_curve_name(openssl::nid::Nid::X9_62_PRIME256V1).map_err(|_| {
-        exceptions::UnsupportedAlgorithm::new_err((
-            format!("Curve is not supported"),
-            exceptions::Reasons::UNSUPPORTED_ELLIPTIC_CURVE,
-        ))
-    })?)
-}
-
-fn py_curve_from_curve<'p>(
-    py: pyo3::Python<'p>,
-    curve: &openssl::ec::EcGroupRef,
-) -> CryptographyResult<pyo3::Bound<'p, pyo3::PyAny>> {
-    Ok(types::CURVE_TYPES.get(py)?.get_item("prime256v1")?)
-}
-
 #[pyo3::pyfunction]
 #[pyo3(signature = (curve))]
 pub(crate) fn generate_private_key(
     py: pyo3::Python<'_>,
-    curve: pyo3::Bound<'_, pyo3::PyAny>
+    curve: pyo3::Bound<'_, pyo3::PyAny>,
 ) -> CryptographyResult<ECPrivateKey> {
-    let ossl_curve = curve_from_py_curve(py)?;
+    let ossl_curve = openssl::ec::EcGroup::from_curve_name(openssl::nid::Nid::X9_62_PRIME256V1,)
+    .map_err(|_| {
+        exceptions::UnsupportedAlgorithm::new_err((
+            "Curve is not supported",
+            exceptions::Reasons::UNSUPPORTED_ELLIPTIC_CURVE,
+        ))
+    })?;
+
     let key = openssl::ec::EcKey::generate(&ossl_curve)?;
     let pkey = openssl::pkey::PKey::from_ec_key(key)?;
 
-    Ok(ECPrivateKey {
-        pkey,
-        curve: py_curve_from_curve(py, &ossl_curve)?.into(),
-    })
+    Ok(ECPrivateKey {pkey, curve: types::CURVE_TYPES.get(py)?.get_item("prime256v1")?.into(),})
 }
 
 #[pyo3::pymethods]
@@ -68,110 +54,6 @@ impl ECPrivateKey {
         py: pyo3::Python<'p>,
     ) -> pyo3::PyResult<pyo3::Bound<'p, pyo3::PyAny>> {
         self.curve.bind(py).getattr(pyo3::intern!(py, "key_size"))
-    }
-
-    fn exchange<'p>(
-        &self,
-        py: pyo3::Python<'p>,
-        algorithm: pyo3::Bound<'_, pyo3::PyAny>,
-        peer_public_key: &ECPublicKey,
-    ) -> CryptographyResult<pyo3::Bound<'p, pyo3::types::PyBytes>> {
-        if !algorithm.is_instance(&types::ECDH.get(py)?)? {
-            return Err(CryptographyError::from(
-                exceptions::UnsupportedAlgorithm::new_err((
-                    "Unsupported EC exchange algorithm",
-                    exceptions::Reasons::UNSUPPORTED_EXCHANGE_ALGORITHM,
-                )),
-            ));
-        }
-
-        let mut deriver = openssl::derive::Deriver::new(&self.pkey)?;
-        // If `set_peer_ex` is available, we don't validate the key. This is
-        // because we already validated it sufficiently when we created the
-        // ECPublicKey object.
-        #[cfg(not(any(
-            CRYPTOGRAPHY_IS_LIBRESSL,
-            CRYPTOGRAPHY_IS_BORINGSSL,
-            CRYPTOGRAPHY_IS_AWSLC
-        )))]
-        deriver
-            .set_peer_ex(&peer_public_key.pkey, false)
-            .map_err(|_| pyo3::exceptions::PyValueError::new_err("Error computing shared key."))?;
-
-        #[cfg(any(
-            CRYPTOGRAPHY_IS_LIBRESSL,
-            CRYPTOGRAPHY_IS_BORINGSSL,
-            CRYPTOGRAPHY_IS_AWSLC
-        ))]
-        deriver
-            .set_peer(&peer_public_key.pkey)
-            .map_err(|_| pyo3::exceptions::PyValueError::new_err("Error computing shared key."))?;
-
-        let len = deriver.len()?;
-        Ok(pyo3::types::PyBytes::new_with(py, len, |b| {
-            // Previously it was possible to have derive return an error
-            // if a public key was in a subgroup. Now that we only
-            // support cofactor 1 curves this should be unreachable
-            // so we unwrap.
-            let n = py.detach(|| deriver.derive(b)).unwrap();
-            assert_eq!(n, b.len());
-            Ok(())
-        })?)
-    }
-
-    fn sign<'p>(
-        &self,
-        py: pyo3::Python<'p>,
-        data: CffiBuf<'_>,
-        signature_algorithm: pyo3::Bound<'_, pyo3::PyAny>,
-    ) -> CryptographyResult<pyo3::Bound<'p, pyo3::types::PyBytes>> {
-        if !signature_algorithm.is_instance(&types::ECDSA.get(py)?)? {
-            return Err(CryptographyError::from(
-                exceptions::UnsupportedAlgorithm::new_err((
-                    "Unsupported elliptic curve signature algorithm",
-                    exceptions::Reasons::UNSUPPORTED_PUBLIC_KEY_ALGORITHM,
-                )),
-            ));
-        }
-        let bound_algorithm = signature_algorithm.getattr(pyo3::intern!(py, "algorithm"))?;
-        let (data, algo) =
-            utils::calculate_digest_and_algorithm(py, data.as_bytes(), &bound_algorithm)?;
-
-        let mut signer = openssl::pkey_ctx::PkeyCtx::new(&self.pkey)?;
-        signer.sign_init()?;
-        cfg_if::cfg_if! {
-            if #[cfg(CRYPTOGRAPHY_OPENSSL_320_OR_GREATER)]{
-                let deterministic: bool = signature_algorithm
-                    .getattr(pyo3::intern!(py, "deterministic_signing"))?
-                    .extract()?;
-                if deterministic {
-                    let hash_function_name = algo
-                        .getattr(pyo3::intern!(py, "name"))?
-                        .extract::<pyo3::pybacked::PyBackedStr>()?;
-                    let hash_function = openssl::md::Md::fetch(None, &hash_function_name, None)?;
-                    // Setting a deterministic nonce type requires to explicitly set the hash function.
-                    // See https://github.com/openssl/openssl/issues/23205
-                    signer.set_signature_md(&hash_function)?;
-                    signer.set_nonce_type(openssl::pkey_ctx::NonceType::DETERMINISTIC_K)?;
-                } else {
-                    signer.set_nonce_type(openssl::pkey_ctx::NonceType::RANDOM_K)?;
-                }
-            } else {
-                let _ = algo;
-            }
-        }
-
-        // TODO: This does an extra allocation and copy. This can't easily use
-        // `PyBytes::new_with` because the exact length of the signature isn't
-        // easily known a priori (if `r` or `s` has a leading 0, the signature
-        // will be a byte or two shorter than the maximum possible length).
-        let data_bytes = data.as_bytes();
-        let sig = py.detach(|| {
-            let mut sig = vec![];
-            signer.sign_to_vec(data_bytes, &mut sig)?;
-            Ok::<_, openssl::error::ErrorStack>(sig)
-        })?;
-        Ok(pyo3::types::PyBytes::new(py, &sig))
     }
 
     fn public_key(&self, py: pyo3::Python<'_>) -> CryptographyResult<ECPublicKey> {
@@ -204,6 +86,7 @@ impl ECPrivateKey {
         )
     }
 }
+
 
 #[pyo3::pymethods]
 impl ECPublicKey {
