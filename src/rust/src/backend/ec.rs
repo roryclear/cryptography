@@ -2,11 +2,12 @@
 // 2.0, and the BSD License. See the LICENSE file in the root of this repository
 // for complete details.
 
-use pyo3::types::PyAnyMethods;
-
 use crate::backend::utils;
 use crate::error::CryptographyResult;
 use crate::types;
+
+use pyo3::types::{PyAnyMethods, PyBytes};
+use crate::serialization::Encoding;
 
 #[pyo3::pyclass(frozen, module = "cryptography.hazmat.bindings._rust.openssl.ec")]
 pub(crate) struct ECPrivateKey {
@@ -34,6 +35,16 @@ pub(crate) fn generate_private_key(
     let pkey = openssl::pkey::PKey::from_ec_key(key)?;
 
     Ok(ECPrivateKey {pkey, curve: types::CURVE_TYPES.get(py)?.get_item("prime256v1")?.into(),})
+}
+
+fn pkey_private_bytes<'p>(
+    py: pyo3::Python<'p>,
+    pkey: &openssl::pkey::PKey<openssl::pkey::Private>,
+    encoding: Encoding,
+) -> CryptographyResult<pyo3::Bound<'p, pyo3::types::PyBytes>> {
+    let parsed = cryptography_key_parsing::ParsedPrivateKey::Pkey(pkey.to_owned());
+    let der_bytes = cryptography_key_parsing::pkcs8::serialize_private_key(&parsed)?;
+    crate::asn1::encode_der_data(py, "PRIVATE KEY".to_string(), der_bytes, encoding)
 }
 
 #[pyo3::pymethods]
@@ -64,7 +75,7 @@ impl ECPrivateKey {
         format: crate::serialization::PrivateFormat,
         encryption_algorithm: &pyo3::Bound<'p, pyo3::PyAny>,
     ) -> CryptographyResult<pyo3::Bound<'p, pyo3::types::PyBytes>> {
-        utils::pkey_private_bytes(py, &slf.borrow().pkey, encoding,)
+        pkey_private_bytes(py, &slf.borrow().pkey, encoding,)
     }
 }
 

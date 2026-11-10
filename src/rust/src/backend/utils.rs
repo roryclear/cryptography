@@ -2,7 +2,7 @@
 // 2.0, and the BSD License. See the LICENSE file in the root of this repository
 // for complete details.
 
-use pyo3::types::{PyAnyMethods, PyBytesMethods};
+use pyo3::types::{PyAnyMethods, PyBytesMethods, PyBytes};
 
 use crate::backend::hashes::Hash;
 use crate::error::{CryptographyError, CryptographyResult};
@@ -36,17 +36,6 @@ pub(crate) fn bn_to_py_int<'p>(
         pyo3::intern!(py, "from_bytes"),
         (b.to_vec(), pyo3::intern!(py, "big")),
     )?)
-}
-
-#[allow(clippy::too_many_arguments)]
-pub(crate) fn pkey_private_bytes<'p>(
-    py: pyo3::Python<'p>,
-    pkey: &openssl::pkey::PKey<openssl::pkey::Private>,
-    encoding: Encoding,
-) -> CryptographyResult<pyo3::Bound<'p, pyo3::types::PyBytes>> {
-    let parsed = cryptography_key_parsing::ParsedPrivateKey::Pkey(pkey.to_owned());
-    let der_bytes = cryptography_key_parsing::pkcs8::serialize_private_key(&parsed)?;
-    return crate::asn1::encode_der_data(py, "PRIVATE KEY".to_string(), der_bytes, encoding);
 }
 
 pub(crate) fn pkey_public_bytes<'p>(
