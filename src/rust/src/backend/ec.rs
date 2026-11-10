@@ -77,23 +77,6 @@ impl ECPrivateKey {
     }
 }
 
-fn pkey_public_bytes<'p>(
-    py: pyo3::Python<'p>,
-    key_obj: &pyo3::Bound<'p, pyo3::PyAny>,
-    pkey: &openssl::pkey::PKey<openssl::pkey::Public>,
-) -> CryptographyResult<pyo3::Bound<'p, pyo3::types::PyBytes>> {
-    let ec = pkey.ec_key()?;
-
-    let mut bn_ctx = openssl::bn::BigNumContext::new()?;
-    let data = ec.public_key().to_bytes(
-        ec.group(),
-        openssl::ec::PointConversionForm::UNCOMPRESSED,
-        &mut bn_ctx,
-    )?;
-
-    Ok(pyo3::types::PyBytes::new(py, &data))
-}
-
 #[pyo3::pymethods]
 impl ECPublicKey {
     #[getter]
@@ -107,10 +90,18 @@ impl ECPublicKey {
     fn public_bytes<'p>(
         slf: &pyo3::Bound<'p, Self>,
         py: pyo3::Python<'p>,
-        encoding: crate::serialization::Encoding,
-        format: crate::serialization::PublicFormat,
     ) -> CryptographyResult<pyo3::Bound<'p, pyo3::types::PyBytes>> {
-        pkey_public_bytes(py, slf, &slf.borrow().pkey)
+        let pkey = &slf.borrow().pkey;
+        let ec = pkey.ec_key()?;
+
+        let mut bn_ctx = openssl::bn::BigNumContext::new()?;
+        let data = ec.public_key().to_bytes(
+            ec.group(),
+            openssl::ec::PointConversionForm::UNCOMPRESSED,
+            &mut bn_ctx,
+        )?;
+
+        Ok(pyo3::types::PyBytes::new(py, &data))
     }
 }
 
