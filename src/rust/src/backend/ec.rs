@@ -6,7 +6,7 @@ use pyo3::types::PyAnyMethods;
 
 use crate::backend::utils;
 use crate::error::CryptographyResult;
-use crate::{exceptions, types};
+use crate::types;
 
 #[pyo3::pyclass(frozen, module = "cryptography.hazmat.bindings._rust.openssl.ec")]
 pub(crate) struct ECPrivateKey {
@@ -28,13 +28,7 @@ pub(crate) fn generate_private_key(
     py: pyo3::Python<'_>,
     curve: pyo3::Bound<'_, pyo3::PyAny>,
 ) -> CryptographyResult<ECPrivateKey> {
-    let ossl_curve = openssl::ec::EcGroup::from_curve_name(openssl::nid::Nid::X9_62_PRIME256V1,)
-    .map_err(|_| {
-        exceptions::UnsupportedAlgorithm::new_err((
-            "Curve is not supported",
-            exceptions::Reasons::UNSUPPORTED_ELLIPTIC_CURVE,
-        ))
-    })?;
+    let ossl_curve = openssl::ec::EcGroup::from_curve_name(openssl::nid::Nid::X9_62_PRIME256V1,)?;
 
     let key = openssl::ec::EcKey::generate(&ossl_curve)?;
     let pkey = openssl::pkey::PKey::from_ec_key(key)?;
