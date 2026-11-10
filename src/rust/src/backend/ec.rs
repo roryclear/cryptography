@@ -88,25 +88,12 @@ fn pkey_public_bytes<'p>(
 ) -> CryptographyResult<pyo3::Bound<'p, pyo3::types::PyBytes>> {
     let ec = pkey.ec_key()?;
 
-    let point_form = match format {
-        PublicFormat::UncompressedPoint => {
-            openssl::ec::PointConversionForm::UNCOMPRESSED
-        }
-        PublicFormat::CompressedPoint => {
-            openssl::ec::PointConversionForm::COMPRESSED
-        }
-        _ => {
-            return Err(pyo3::exceptions::PyValueError::new_err(
-                "X962 encoding must be used with CompressedPoint or UncompressedPoint format",
-            )
-            .into());
-        }
-    };
-
     let mut bn_ctx = openssl::bn::BigNumContext::new()?;
-    let data = ec
-        .public_key()
-        .to_bytes(ec.group(), point_form, &mut bn_ctx)?;
+    let data = ec.public_key().to_bytes(
+        ec.group(),
+        openssl::ec::PointConversionForm::UNCOMPRESSED,
+        &mut bn_ctx,
+    )?;
 
     Ok(pyo3::types::PyBytes::new(py, &data))
 }
