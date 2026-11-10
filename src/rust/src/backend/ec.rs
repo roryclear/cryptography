@@ -81,10 +81,6 @@ fn pkey_public_bytes<'p>(
     py: pyo3::Python<'p>,
     key_obj: &pyo3::Bound<'p, pyo3::PyAny>,
     pkey: &openssl::pkey::PKey<openssl::pkey::Public>,
-    encoding: Encoding,
-    format: PublicFormat,
-    openssh_allowed: bool,
-    raw_allowed: bool,
 ) -> CryptographyResult<pyo3::Bound<'p, pyo3::types::PyBytes>> {
     let ec = pkey.ec_key()?;
 
@@ -114,7 +110,7 @@ impl ECPublicKey {
         encoding: crate::serialization::Encoding,
         format: crate::serialization::PublicFormat,
     ) -> CryptographyResult<pyo3::Bound<'p, pyo3::types::PyBytes>> {
-        pkey_public_bytes(py, slf, &slf.borrow().pkey, encoding, format, true, false)
+        pkey_public_bytes(py, slf, &slf.borrow().pkey)
     }
 }
 
