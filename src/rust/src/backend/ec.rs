@@ -3,7 +3,7 @@
 // for complete details.
 
 use pyo3::types::{PyAnyMethods, PyBytes};
-use crate::error::{CryptographyError, CryptographyResult};
+use crate::error::CryptographyResult;
 use crate::serialization::{Encoding, PrivateFormat, PublicFormat};
 use crate::types;
 
@@ -86,36 +86,29 @@ fn pkey_public_bytes<'p>(
     openssh_allowed: bool,
     raw_allowed: bool,
 ) -> CryptographyResult<pyo3::Bound<'p, pyo3::types::PyBytes>> {
-    if let Ok(ec) = pkey.ec_key() {
-        let point_form = match format {
-            PublicFormat::UncompressedPoint => {
-                openssl::ec::PointConversionForm::UNCOMPRESSED
-            }
-            PublicFormat::CompressedPoint => {
-                openssl::ec::PointConversionForm::COMPRESSED
-            }
-            _ => {
-                return Err(CryptographyError::from(
-                    pyo3::exceptions::PyValueError::new_err(
-                        "X962 encoding must be used with CompressedPoint or UncompressedPoint format"
-                    )
-                ));
-            }
-        };
+    let ec = pkey.ec_key()?;
 
-        let mut bn_ctx = openssl::bn::BigNumContext::new()?;
-        let data = ec
-            .public_key()
-            .to_bytes(ec.group(), point_form, &mut bn_ctx)?;
+    let point_form = match format {
+        PublicFormat::UncompressedPoint => {
+            openssl::ec::PointConversionForm::UNCOMPRESSED
+        }
+        PublicFormat::CompressedPoint => {
+            openssl::ec::PointConversionForm::COMPRESSED
+        }
+        _ => {
+            return Err(pyo3::exceptions::PyValueError::new_err(
+                "X962 encoding must be used with CompressedPoint or UncompressedPoint format",
+            )
+            .into());
+        }
+    };
 
-        return Ok(pyo3::types::PyBytes::new(py, &data));
-    }
+    let mut bn_ctx = openssl::bn::BigNumContext::new()?;
+    let data = ec
+        .public_key()
+        .to_bytes(ec.group(), point_form, &mut bn_ctx)?;
 
-    Err(CryptographyError::from(
-        pyo3::exceptions::PyValueError::new_err(
-            "format is invalid with this key",
-        ),
-    ))
+    Ok(pyo3::types::PyBytes::new(py, &data))
 }
 
 #[pyo3::pymethods]
