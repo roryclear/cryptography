@@ -2,12 +2,10 @@
 // 2.0, and the BSD License. See the LICENSE file in the root of this repository
 // for complete details.
 
-use crate::backend::utils;
-use crate::error::CryptographyResult;
-use crate::types;
-
 use pyo3::types::{PyAnyMethods, PyBytes};
-use crate::serialization::Encoding;
+use crate::error::{CryptographyError, CryptographyResult};
+use crate::serialization::{Encoding, PrivateFormat, PublicFormat};
+use crate::types;
 
 #[pyo3::pyclass(frozen, module = "cryptography.hazmat.bindings._rust.openssl.ec")]
 pub(crate) struct ECPrivateKey {
@@ -79,6 +77,46 @@ impl ECPrivateKey {
     }
 }
 
+fn pkey_public_bytes<'p>(
+    py: pyo3::Python<'p>,
+    key_obj: &pyo3::Bound<'p, pyo3::PyAny>,
+    pkey: &openssl::pkey::PKey<openssl::pkey::Public>,
+    encoding: Encoding,
+    format: PublicFormat,
+    openssh_allowed: bool,
+    raw_allowed: bool,
+) -> CryptographyResult<pyo3::Bound<'p, pyo3::types::PyBytes>> {
+    if let Ok(ec) = pkey.ec_key() {
+        let point_form = match format {
+            PublicFormat::UncompressedPoint => {
+                openssl::ec::PointConversionForm::UNCOMPRESSED
+            }
+            PublicFormat::CompressedPoint => {
+                openssl::ec::PointConversionForm::COMPRESSED
+            }
+            _ => {
+                return Err(CryptographyError::from(
+                    pyo3::exceptions::PyValueError::new_err(
+                        "X962 encoding must be used with CompressedPoint or UncompressedPoint format"
+                    )
+                ));
+            }
+        };
+
+        let mut bn_ctx = openssl::bn::BigNumContext::new()?;
+        let data = ec
+            .public_key()
+            .to_bytes(ec.group(), point_form, &mut bn_ctx)?;
+
+        return Ok(pyo3::types::PyBytes::new(py, &data));
+    }
+
+    Err(CryptographyError::from(
+        pyo3::exceptions::PyValueError::new_err(
+            "format is invalid with this key",
+        ),
+    ))
+}
 
 #[pyo3::pymethods]
 impl ECPublicKey {
@@ -96,7 +134,7 @@ impl ECPublicKey {
         encoding: crate::serialization::Encoding,
         format: crate::serialization::PublicFormat,
     ) -> CryptographyResult<pyo3::Bound<'p, pyo3::types::PyBytes>> {
-        utils::pkey_public_bytes(py, slf, &slf.borrow().pkey, encoding, format, true, false)
+        pkey_public_bytes(py, slf, &slf.borrow().pkey, encoding, format, true, false)
     }
 }
 
