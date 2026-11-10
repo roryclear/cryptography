@@ -2,14 +2,10 @@
 // 2.0, and the BSD License. See the LICENSE file in the root of this repository
 // for complete details.
 
-use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hash, Hasher};
-
 use pyo3::types::PyAnyMethods;
 
 use crate::backend::utils;
-use crate::buf::CffiBuf;
-use crate::error::{CryptographyError, CryptographyResult};
+use crate::error::CryptographyResult;
 use crate::{exceptions, types};
 
 #[pyo3::pyclass(frozen, module = "cryptography.hazmat.bindings._rust.openssl.ec")]
