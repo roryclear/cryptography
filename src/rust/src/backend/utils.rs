@@ -41,13 +41,8 @@ pub(crate) fn bn_to_py_int<'p>(
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn pkey_private_bytes<'p>(
     py: pyo3::Python<'p>,
-    key_obj: &pyo3::Bound<'p, pyo3::PyAny>,
     pkey: &openssl::pkey::PKey<openssl::pkey::Private>,
     encoding: Encoding,
-    format: PrivateFormat,
-    encryption_algorithm: &pyo3::Bound<'p, pyo3::PyAny>,
-    openssh_allowed: bool,
-    raw_allowed: bool,
 ) -> CryptographyResult<pyo3::Bound<'p, pyo3::types::PyBytes>> {
     let parsed = cryptography_key_parsing::ParsedPrivateKey::Pkey(pkey.to_owned());
     let der_bytes = cryptography_key_parsing::pkcs8::serialize_private_key(&parsed)?;

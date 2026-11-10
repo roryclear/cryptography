@@ -64,16 +64,7 @@ impl ECPrivateKey {
         format: crate::serialization::PrivateFormat,
         encryption_algorithm: &pyo3::Bound<'p, pyo3::PyAny>,
     ) -> CryptographyResult<pyo3::Bound<'p, pyo3::types::PyBytes>> {
-        utils::pkey_private_bytes(
-            py,
-            slf,
-            &slf.borrow().pkey,
-            encoding,
-            format,
-            encryption_algorithm,
-            true,
-            false,
-        )
+        utils::pkey_private_bytes(py, &slf.borrow().pkey, encoding,)
     }
 }
 
